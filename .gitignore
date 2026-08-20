@@ -1,0 +1,15 @@
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+
+# Editor-local files
+.vscode/
+.idea/
+
+# Internal product research references
+references/
