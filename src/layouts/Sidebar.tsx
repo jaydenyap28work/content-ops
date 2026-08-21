@@ -12,6 +12,7 @@ interface SidebarProps {
 function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
   const { workspace } = useAuth()
   const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
+  const hasResearchAccess = isSuperAdmin || workspace?.roles.includes('Internal Manager') || workspace?.roles.includes('Strategist / Content Planner')
 
   return (
     <>
@@ -37,7 +38,7 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <div className="space-y-1">
               {routeDefinitions
-                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin))
+                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin) && (!['/references', '/ideas'].includes(route.path) || hasResearchAccess))
                 .map((route) => {
                   const Icon = route.icon
                   return (

@@ -6,6 +6,8 @@ import { routeDefinitions } from './lib/navigation'
 import { LoginPage } from './pages/LoginPage'
 import { ClientsPage } from './pages/ClientsPage'
 import { TeamPage } from './pages/TeamPage'
+import { ReferencesPage } from './pages/ReferencesPage'
+import { IdeasPage } from './pages/IdeasPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 
@@ -22,7 +24,7 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : <PlaceholderPage route={route} />}
+                  element={route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : <PlaceholderPage route={route} />}
                 />
               ))}
               <Route path="*" element={<NotFoundPage />} />

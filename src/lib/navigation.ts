@@ -59,9 +59,9 @@ export const routeDefinitions: AppRouteDefinition[] = [
     title: 'Ideas',
     navigationLabel: 'Ideas',
     description:
-      'A deliberate space to evaluate ideas before they enter formal production.',
+      'A Client-scoped bank for evaluating, approving, rejecting, and tracing Ideas before production.',
     foundationNote:
-      'Idea status, provenance, contributors, and conversion will arrive with the References and Ideas phase.',
+      'Idea lifecycle, contributors, Tags, and Reference provenance are live; Content conversion remains reserved for the next phase.',
     phase: 'Roadmap Phase 3',
     section: 'Workspace',
     icon: Lightbulb,
@@ -71,9 +71,9 @@ export const routeDefinitions: AppRouteDefinition[] = [
     title: 'References',
     navigationLabel: 'References',
     description:
-      'An internal library for accounts, examples, and the reasons they are worth studying.',
+      'An internal, Client-aware library for accounts, examples, and reusable lessons.',
     foundationNote:
-      'Reference analysis and Reference → Idea conversion are intentionally not simulated in Foundation.',
+      'Reference analysis, multi-Client relationships, Tags, and conversion to Idea are live.',
     phase: 'Roadmap Phase 3',
     section: 'Workspace',
     icon: BookOpen,
