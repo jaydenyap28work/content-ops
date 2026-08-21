@@ -1,0 +1,174 @@
+import { supabase } from '../../lib/supabase'
+
+export interface RoleRecord {
+  id: string
+  code: string
+  name: string
+}
+
+export interface ClientRecord {
+  id: string
+  workspace_id: string
+  name: string
+  code: string
+  industry: string | null
+  description: string | null
+  brand_notes: string | null
+  status: 'active' | 'archived'
+  created_at: string
+  updated_at: string
+}
+
+export interface TeamMemberRecord {
+  membershipId: string
+  userId: string
+  displayName: string
+  email: string
+  jobTitle: string | null
+  status: 'active' | 'deactivated'
+  joinedAt: string
+  updatedAt: string
+  roleIds: string[]
+  clientAccess: Array<{ clientId: string; roleId: string; status: 'active' | 'deactivated' }>
+}
+
+function throwIfError(error: { message: string } | null) {
+  if (error) throw new Error(error.message)
+}
+
+export async function loadRoles(workspaceId: string) {
+  const { data, error } = await supabase
+    .from('roles')
+    .select('id, code, name')
+    .eq('workspace_id', workspaceId)
+    .eq('is_active', true)
+    .order('name')
+  throwIfError(error)
+  return (data ?? []) as RoleRecord[]
+}
+
+export async function loadClients(workspaceId: string) {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, workspace_id, name, code, industry, description, brand_notes, status, created_at, updated_at')
+    .eq('workspace_id', workspaceId)
+    .order('name')
+  throwIfError(error)
+  return (data ?? []) as ClientRecord[]
+}
+
+export async function loadTeam(workspaceId: string) {
+  const membershipResult = await supabase
+    .from('workspace_members')
+    .select('id, user_profile_id, status, joined_at, updated_at')
+    .eq('workspace_id', workspaceId)
+    .order('joined_at')
+  throwIfError(membershipResult.error)
+
+  const memberships = membershipResult.data ?? []
+  if (memberships.length === 0) return []
+  const membershipIds = memberships.map((row) => row.id as string)
+  const userIds = memberships.map((row) => row.user_profile_id as string)
+
+  const [profilesResult, rolesResult, accessResult] = await Promise.all([
+    supabase.from('user_profiles').select('id, display_name, email, job_title').in('id', userIds),
+    supabase.from('workspace_member_roles').select('workspace_member_id, role_id').in('workspace_member_id', membershipIds),
+    supabase.from('client_members').select('workspace_member_id, client_id, role_id, status').in('workspace_member_id', membershipIds),
+  ])
+  throwIfError(profilesResult.error)
+  throwIfError(rolesResult.error)
+  throwIfError(accessResult.error)
+
+  return memberships.map((membership) => {
+    const profile = (profilesResult.data ?? []).find((row) => row.id === membership.user_profile_id)
+    return {
+      membershipId: membership.id as string,
+      userId: membership.user_profile_id as string,
+      displayName: (profile?.display_name as string | undefined) ?? 'Unnamed member',
+      email: (profile?.email as string | undefined) ?? 'Email unavailable',
+      jobTitle: (profile?.job_title as string | null | undefined) ?? null,
+      status: membership.status as 'active' | 'deactivated',
+      joinedAt: membership.joined_at as string,
+      updatedAt: membership.updated_at as string,
+      roleIds: (rolesResult.data ?? [])
+        .filter((row) => row.workspace_member_id === membership.id)
+        .map((row) => row.role_id as string),
+      clientAccess: (accessResult.data ?? [])
+        .filter((row) => row.workspace_member_id === membership.id)
+        .map((row) => ({
+          clientId: row.client_id as string,
+          roleId: row.role_id as string,
+          status: row.status as 'active' | 'deactivated',
+        })),
+    } satisfies TeamMemberRecord
+  })
+}
+
+export async function saveClient(
+  workspaceId: string,
+  values: { id?: string; name: string; code: string; industry: string; description: string; brandNotes: string },
+) {
+  const rpcName = values.id ? 'update_client' : 'create_client'
+  const params = {
+    ...(values.id ? { target_client_id: values.id } : { target_workspace_id: workspaceId }),
+    client_name: values.name,
+    client_code: values.code,
+    client_industry: values.industry,
+    client_description: values.description,
+    client_brand_notes: values.brandNotes,
+  }
+  const { error } = await supabase.rpc(rpcName, params)
+  throwIfError(error)
+}
+
+export async function archiveClient(clientId: string) {
+  const { error } = await supabase.rpc('archive_client', { target_client_id: clientId })
+  throwIfError(error)
+}
+
+export async function updateMemberProfile(membershipId: string, displayName: string, jobTitle: string) {
+  const { error } = await supabase.rpc('admin_update_user_profile', {
+    target_workspace_member_id: membershipId,
+    target_display_name: displayName,
+    target_job_title: jobTitle,
+  })
+  throwIfError(error)
+}
+
+export async function setMemberActive(membershipId: string, makeActive: boolean) {
+  const { error } = await supabase.rpc('admin_set_member_active', {
+    target_workspace_member_id: membershipId,
+    make_active: makeActive,
+  })
+  throwIfError(error)
+}
+
+export async function setMemberRoles(membershipId: string, roleIds: string[]) {
+  const { error } = await supabase.rpc('admin_set_member_roles', {
+    target_workspace_member_id: membershipId,
+    target_role_ids: roleIds,
+  })
+  throwIfError(error)
+}
+
+export async function setClientAccess(clientId: string, membershipId: string, roleId: string, makeActive: boolean) {
+  const { error } = await supabase.rpc('admin_set_client_access', {
+    target_client_id: clientId,
+    target_workspace_member_id: membershipId,
+    target_role_id: roleId,
+    make_active: makeActive,
+  })
+  throwIfError(error)
+}
+
+export async function inviteUser(payload: {
+  email: string
+  displayName: string
+  jobTitle: string
+  workspaceId: string
+  roleIds: string[]
+}) {
+  const { data, error } = await supabase.functions.invoke('invite-user', { body: payload })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error as string)
+}

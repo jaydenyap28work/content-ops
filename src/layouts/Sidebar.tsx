@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { navigationSections, routeDefinitions } from '../lib/navigation'
 import { cn } from '../lib/cn'
+import { useAuth } from '../features/auth/auth-context'
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -9,6 +10,9 @@ interface SidebarProps {
 }
 
 function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { workspace } = useAuth()
+  const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
+
   return (
     <>
       <div className="border-b border-white/10 px-5 py-5">
@@ -33,7 +37,7 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <div className="space-y-1">
               {routeDefinitions
-                .filter((route) => route.section === section)
+                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin))
                 .map((route) => {
                   const Icon = route.icon
                   return (
@@ -71,8 +75,8 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-white/10 p-4">
         <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-coral-light">Application Foundation</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-white/48">Business data is intentionally absent in this phase.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-coral-light">Protected workspace</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-white/48">Membership, roles, and Client access are enforced at the data boundary.</p>
         </div>
       </div>
     </>

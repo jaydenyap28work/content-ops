@@ -131,9 +131,9 @@ export const routeDefinitions: AppRouteDefinition[] = [
     title: 'Clients',
     navigationLabel: 'Clients',
     description:
-      'The Client and Brand boundary that keeps every operational record in the right scope.',
+      'Create and maintain access-scoped Client and Brand boundaries.',
     foundationNote:
-      'Client records and access-aware selection will arrive after Workspace identity is established.',
+      'Client records are live. Operational content relationships arrive in later phases.',
     phase: 'Roadmap Phase 2',
     section: 'Administration',
     icon: Building2,
@@ -143,9 +143,9 @@ export const routeDefinitions: AppRouteDefinition[] = [
     title: 'Team',
     navigationLabel: 'Team',
     description:
-      'The future Super Admin surface for users, roles, and Client access.',
+      'The Super Admin workspace for invitations, profiles, roles, status, and Client access.',
     foundationNote:
-      'Authentication and user management are explicitly outside this Foundation phase.',
+      'Team access uses predefined roles and explicit Client assignments; custom permission design remains deferred.',
     phase: 'Roadmap Phase 2',
     section: 'Administration',
     icon: Users,

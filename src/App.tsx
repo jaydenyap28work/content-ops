@@ -4,6 +4,8 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { AppShell } from './layouts/AppShell'
 import { routeDefinitions } from './lib/navigation'
 import { LoginPage } from './pages/LoginPage'
+import { ClientsPage } from './pages/ClientsPage'
+import { TeamPage } from './pages/TeamPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 
@@ -20,7 +22,7 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={<PlaceholderPage route={route} />}
+                  element={route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : <PlaceholderPage route={route} />}
                 />
               ))}
               <Route path="*" element={<NotFoundPage />} />
