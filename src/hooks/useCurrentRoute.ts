@@ -4,5 +4,5 @@ import { getRouteDefinition } from '../lib/navigation'
 export function useCurrentRoute() {
   const { pathname } = useLocation()
 
-  return getRouteDefinition(pathname)
+  return getRouteDefinition(pathname) ?? (pathname.startsWith('/content/') ? getRouteDefinition('/content') : undefined)
 }

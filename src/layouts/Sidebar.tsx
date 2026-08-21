@@ -38,7 +38,7 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <div className="space-y-1">
               {routeDefinitions
-                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin) && (!['/references', '/ideas'].includes(route.path) || hasResearchAccess))
+                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin) && (!['/references', '/ideas', '/content'].includes(route.path) || hasResearchAccess))
                 .map((route) => {
                   const Icon = route.icon
                   return (

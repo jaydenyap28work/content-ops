@@ -35,9 +35,9 @@ export const routeDefinitions: AppRouteDefinition[] = [
     title: 'Content',
     navigationLabel: 'Content',
     description:
-      'The operational home for each content record and its production lifecycle.',
+      'A Client-scoped ledger for stable Content records, provenance, Campaigns, and Draft planning.',
     foundationNote:
-      'Content lists, strong filters, and the tabbed detail workspace begin in the Content Core phase.',
+      'Content CRUD, basic filters, Campaigns, stable IDs, and Idea provenance are live; production workflow remains deferred.',
     phase: 'Roadmap Phase 4',
     section: 'Workspace',
     icon: FileText,
@@ -61,7 +61,7 @@ export const routeDefinitions: AppRouteDefinition[] = [
     description:
       'A Client-scoped bank for evaluating, approving, rejecting, and tracing Ideas before production.',
     foundationNote:
-      'Idea lifecycle, contributors, Tags, and Reference provenance are live; Content conversion remains reserved for the next phase.',
+      'Idea lifecycle, contributors, Tags, Reference provenance, and transaction-safe conversion to Content are live.',
     phase: 'Roadmap Phase 3',
     section: 'Workspace',
     icon: Lightbulb,
