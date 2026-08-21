@@ -34,6 +34,17 @@ pnpm install
 pnpm dev
 ```
 
+### Supabase environment
+
+Copy `.env.example` to `.env.local`, then provide the URL and anon key for the intended non-production Supabase environment:
+
+```dotenv
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+`.env.local` is ignored by Git. Only the public anon key belongs in the frontend configuration; never use a `service_role` key in the browser application. This repository does not create or connect to a cloud Supabase project automatically.
+
 Quality checks:
 
 ```bash
