@@ -1,6 +1,7 @@
-import { Menu } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { useCurrentRoute } from '../hooks/useCurrentRoute'
 import { StatusBadge } from '../components/ui'
+import { useAuth } from '../features/auth/auth-context'
 
 interface TopBarProps {
   onOpenNavigation: () => void
@@ -8,6 +9,7 @@ interface TopBarProps {
 
 export function TopBar({ onOpenNavigation }: TopBarProps) {
   const route = useCurrentRoute()
+  const { session, workspace, signOut } = useAuth()
 
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-xl">
@@ -26,9 +28,23 @@ export function TopBar({ onOpenNavigation }: TopBarProps) {
           <h1 className="truncate font-display text-xl font-semibold text-ink sm:text-2xl">{route?.title ?? 'Page not found'}</h1>
         </div>
 
-        <div className="hidden items-center gap-3 sm:flex">
-          <span className="text-xs font-semibold text-ink-muted">Asia/Kuala_Lumpur</span>
-          <StatusBadge tone="info">Foundation</StatusBadge>
+        <div className="hidden min-w-0 items-center gap-3 sm:flex">
+          <div className="min-w-0 text-right">
+            <p className="max-w-56 truncate text-xs font-bold text-ink">{session?.user.email}</p>
+            <p className="max-w-56 truncate text-[0.68rem] font-semibold text-ink-muted">
+              {workspace?.name} · {workspace?.roles.join(', ') || 'Member'}
+            </p>
+          </div>
+          <StatusBadge tone="info">Authenticated</StatusBadge>
+          <button
+            type="button"
+            className="grid size-10 place-items-center rounded-lg border border-line bg-white text-ink-muted transition hover:border-coral/40 hover:text-coral"
+            onClick={() => void signOut()}
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </header>

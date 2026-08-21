@@ -18,7 +18,7 @@ ContentOS 是一套内部 Content / Personal IP Operations System。
 - Assets
 - Editing Playbook
 
-Status: Application Foundation
+Status: Auth Foundation
 
 ## Local development
 
@@ -45,6 +45,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 `.env.local` is ignored by Git. Only the public anon key belongs in the frontend configuration; never use a `service_role` key in the browser application. This repository does not create or connect to a cloud Supabase project automatically.
 
+Public self-registration is intentionally unavailable. A Supabase administrator must create the initial Auth user in Dashboard, confirm the work email, and then run `supabase/bootstrap/first-super-admin.sql` in the SQL Editor to bind that identity to the seeded ContentOS Workspace and Super Admin role. The bootstrap script accepts only the designated work email and contains no password or credential.
+
 Quality checks:
 
 ```bash
@@ -58,4 +60,4 @@ Preview the production build locally:
 pnpm preview
 ```
 
-The current application contains the responsive ContentOS shell, shared UI conventions, and registered placeholder routes only. It does not connect to Supabase, create a database, implement authentication, or include business demo data.
+The current application contains Supabase password sign-in/sign-out, an active Workspace membership gate, the responsive ContentOS shell, shared UI conventions, and registered placeholder routes. It does not offer public registration or include business demo data.
