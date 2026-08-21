@@ -11,5 +11,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Application dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
 # Internal product research references
 references/

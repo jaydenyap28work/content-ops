@@ -1,0 +1,55 @@
+import { forwardRef } from 'react'
+import type { ButtonHTMLAttributes } from 'react'
+import { cn } from '../../lib/cn'
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant
+  size?: ButtonSize
+}
+
+const variantClasses: Record<ButtonVariant, string> = {
+  primary:
+    'border-ink bg-ink text-paper shadow-[3px_3px_0_0_var(--color-coral)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_0_var(--color-coral)]',
+  secondary:
+    'border-line-strong bg-paper text-ink hover:border-ink hover:bg-canvas',
+  ghost: 'border-transparent bg-transparent text-ink-muted hover:bg-ink/7 hover:text-ink',
+  danger:
+    'border-coral bg-coral text-white shadow-[3px_3px_0_0_var(--color-ink)] hover:-translate-y-0.5',
+}
+
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'h-8 px-3 text-xs',
+  md: 'h-10 px-4 text-sm',
+  lg: 'h-12 px-5 text-sm',
+  icon: 'size-10 p-0',
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      type = 'button',
+      variant = 'primary',
+      size = 'md',
+      ...props
+    },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center gap-2 rounded-md border font-semibold tracking-[-0.01em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45',
+        variantClasses[variant],
+        sizeClasses[size],
+        className,
+      )}
+      {...props}
+    />
+  ),
+)
+
+Button.displayName = 'Button'
