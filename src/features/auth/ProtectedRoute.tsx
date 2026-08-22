@@ -28,9 +28,16 @@ const accessMessages = {
 
 export function ProtectedRoute() {
   const location = useLocation()
-  const { status, errorMessage, refreshAccess, signOut } = useAuth()
+  const {
+    status,
+    errorMessage,
+    initialAuthLoading,
+    workspaceLoading,
+    refreshAccess,
+    signOut,
+  } = useAuth()
 
-  if (status === 'loading') {
+  if (status === 'loading' || initialAuthLoading || workspaceLoading) {
     return (
       <main className="grid min-h-dvh place-items-center bg-canvas px-5 text-ink">
         <div className="flex items-center gap-3 text-sm font-semibold text-ink-muted">

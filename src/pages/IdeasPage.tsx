@@ -4,6 +4,7 @@ import { Archive, ArrowRight, CheckCircle2, Lightbulb, LoaderCircle, Pencil, Plu
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, FormField, Input, Select, StatusBadge, Textarea } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
+import { useDevMountCounter } from '../lib/dev-diagnostics'
 import {
   changeIdeaStatus, loadContributorOptions, loadIdeas, loadReferences, loadResearchCatalog, saveIdea,
 } from '../features/research/research-api'
@@ -24,6 +25,7 @@ const statuses: Array<{ value: IdeaStatus | 'all'; label: string }> = [
 ]
 
 export function IdeasPage() {
+  useDevMountCounter('IdeasPage')
   const { workspace, session } = useAuth()
   const [catalog, setCatalog] = useState<ResearchCatalog>({ clients: [], platforms: [], categories: [], contributionRoles: [] })
   const [ideas, setIdeas] = useState<IdeaRecord[]>([])

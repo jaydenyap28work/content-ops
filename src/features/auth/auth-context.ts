@@ -22,6 +22,10 @@ export interface AuthContextValue {
   status: AccessStatus
   workspace: WorkspaceAccess | null
   errorMessage: string | null
+  initialAuthLoading: boolean
+  workspaceLoading: boolean
+  backgroundRefreshing: boolean
+  backgroundError: string | null
   refreshAccess: () => Promise<void>
   signOut: () => Promise<void>
 }

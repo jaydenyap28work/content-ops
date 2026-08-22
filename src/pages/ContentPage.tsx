@@ -7,6 +7,7 @@ import { ContentFormDrawer } from '../features/content/ContentFormDrawer'
 import { loadContentCatalog, loadContents } from '../features/content/content-api'
 import type { ContentCatalog, ContentRecord } from '../features/content/content-api'
 import { useAuth } from '../features/auth/auth-context'
+import { useDevMountCounter } from '../lib/dev-diagnostics'
 
 const emptyCatalog: ContentCatalog = { clients: [], categories: [], campaigns: [] }
 
@@ -21,6 +22,7 @@ function priorityTone(priority: ContentRecord['priority']) {
 }
 
 export function ContentPage() {
+  useDevMountCounter('ContentPage')
   const { workspace } = useAuth()
   const navigate = useNavigate()
   const [catalog, setCatalog] = useState<ContentCatalog>(emptyCatalog)

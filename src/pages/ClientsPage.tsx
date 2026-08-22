@@ -3,12 +3,14 @@ import type { FormEvent } from 'react'
 import { Archive, Building2, LoaderCircle, Pencil, Plus, Search, X } from 'lucide-react'
 import { Button, Card, FormField, Input, StatusBadge, Textarea } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
+import { useDevMountCounter } from '../lib/dev-diagnostics'
 import { archiveClient, loadClients, saveClient } from '../features/admin/admin-api'
 import type { ClientRecord } from '../features/admin/admin-api'
 
 const emptyForm = { name: '', code: '', industry: '', description: '', brandNotes: '' }
 
 export function ClientsPage() {
+  useDevMountCounter('ClientsPage')
   const { workspace } = useAuth()
   const [clients, setClients] = useState<ClientRecord[]>([])
   const [loading, setLoading] = useState(true)

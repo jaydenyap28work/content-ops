@@ -1,10 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
+import { AlertTriangle, LoaderCircle, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import { Button } from '../components/ui'
+import { useAuth } from '../features/auth/auth-context'
+import { devAuthLog, useDevMountCounter } from '../lib/dev-diagnostics'
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+  const { backgroundRefreshing, backgroundError, refreshAccess } = useAuth()
+
+  useDevMountCounter('AppShell')
+
+  useEffect(() => {
+    devAuthLog('navigation', {
+      source: 'router_location_change',
+      pathname: location.pathname,
+    })
+  }, [location.pathname])
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -33,7 +48,40 @@ export function AppShell() {
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="min-h-dvh lg:pl-sidebar">
         <TopBar onOpenNavigation={() => setMobileOpen(true)} />
-        <main id="main-content" className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        {backgroundRefreshing ? (
+          <div
+            className="border-b border-blue/20 bg-blue/5 px-4 py-2 text-xs font-semibold text-blue sm:px-6 lg:px-8"
+            role="status"
+          >
+            <span className="inline-flex items-center gap-2">
+              <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+              Rechecking workspace access in the background… Your current work stays open.
+            </span>
+          </div>
+        ) : null}
+        {backgroundError ? (
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 border-b border-gold/25 bg-gold/8 px-4 py-2.5 text-xs text-ink sm:px-6 lg:px-8"
+            role="alert"
+          >
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <AlertTriangle className="size-4 text-gold-dark" aria-hidden="true" />
+              Workspace recheck was interrupted. Your page and form remain open.
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void refreshAccess()}
+            >
+              <RefreshCw className="size-3.5" aria-hidden="true" />
+              Retry access check
+            </Button>
+          </div>
+        ) : null}
+        <main
+          id="main-content"
+          className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
+        >
           <div className="mx-auto w-full max-w-content">
             <Outlet />
           </div>

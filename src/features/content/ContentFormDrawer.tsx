@@ -5,6 +5,7 @@ import { Button, FormField, Input, Select, Textarea } from '../../components/ui'
 import { loadContentOwnerOptions, saveContent } from './content-api'
 import type { ContentCatalog, ContentRecord } from './content-api'
 import type { ContributorOption } from '../research/research-api'
+import { useDevMountCounter } from '../../lib/dev-diagnostics'
 
 interface ContentFormDrawerProps {
   workspaceId: string
@@ -71,6 +72,7 @@ export function ContentFormDrawer({
   onClose,
   onSaved,
 }: ContentFormDrawerProps) {
+  useDevMountCounter('ContentFormDrawer')
   const [form, setForm] = useState(() => initialForm(catalog, content))
   const [owners, setOwners] = useState<ContributorOption[]>([])
   const [busy, setBusy] = useState(false)

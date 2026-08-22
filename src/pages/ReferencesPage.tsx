@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Archive, ArrowRight, ExternalLink, FileSearch, LoaderCircle, Pencil, Plus, Search, Star, X } from 'lucide-react'
 import { Button, Card, FormField, Input, Select, StatusBadge, Textarea } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
+import { useDevMountCounter } from '../lib/dev-diagnostics'
 import {
   archiveReference, createIdeaFromReference, loadReferences, loadResearchCatalog, saveReference,
 } from '../features/research/research-api'
@@ -32,6 +33,7 @@ const emptyForm: ReferenceForm = {
 }
 
 export function ReferencesPage() {
+  useDevMountCounter('ReferencesPage')
   const { workspace } = useAuth()
   const [catalog, setCatalog] = useState<ResearchCatalog>({ clients: [], platforms: [], categories: [], contributionRoles: [] })
   const [references, setReferences] = useState<ReferenceRecord[]>([])
