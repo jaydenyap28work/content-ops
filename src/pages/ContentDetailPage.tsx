@@ -5,10 +5,15 @@ import { Button, Card, StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
 import { ContentFormDrawer } from '../features/content/ContentFormDrawer'
 import { ProductionWorkspace } from '../features/content/ProductionWorkspace'
+import { ReviewWorkspace } from '../features/content/ReviewWorkspace'
+import { ScriptWorkspace } from '../features/content/ScriptWorkspace'
+import { TimelineWorkspace } from '../features/content/TimelineWorkspace'
 import { archiveContent, loadContentCatalog, loadContentDetail } from '../features/content/content-api'
 import type { ContentCatalog, ContentDetail } from '../features/content/content-api'
 import { loadWorkflowBundle } from '../features/content/workflow-api'
 import type { WorkflowBundle } from '../features/content/workflow-api'
+import { loadReviewBundle } from '../features/content/review-api'
+import type { ReviewBundle } from '../features/content/review-api'
 
 const emptyCatalog: ContentCatalog = { clients: [], categories: [], campaigns: [] }
 
@@ -22,11 +27,13 @@ export function ContentDetailPage() {
   const navigate = useNavigate()
   const [detail, setDetail] = useState<ContentDetail | null>(null)
   const [workflow, setWorkflow] = useState<WorkflowBundle | null>(null)
+  const [review, setReview] = useState<ReviewBundle | null>(null)
   const [catalog, setCatalog] = useState<ContentCatalog>(emptyCatalog)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'script' | 'production' | 'review' | 'activity'>('overview')
 
   const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
   const isManager = workspace?.roles.includes('Internal Manager') ?? false
@@ -37,12 +44,13 @@ export function ContentDetailPage() {
     if (!workspace || !contentId || !hasContentAccess) return
     setLoading(true); setError(null)
     try {
-      const [nextDetail, nextCatalog, nextWorkflow] = await Promise.all([
+      const [nextDetail, nextCatalog, nextWorkflow, nextReview] = await Promise.all([
         loadContentDetail(workspace.id, contentId),
         loadContentCatalog(workspace.id),
         loadWorkflowBundle(contentId),
+        loadReviewBundle(contentId),
       ])
-      setDetail(nextDetail); setCatalog(nextCatalog); setWorkflow(nextWorkflow)
+      setDetail(nextDetail); setCatalog(nextCatalog); setWorkflow(nextWorkflow); setReview(nextReview)
       if (!nextDetail) setError('Content not found or outside your authorized Client scope.')
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not load Content detail') }
     finally { setLoading(false) }
@@ -62,7 +70,7 @@ export function ContentDetailPage() {
 
   if (!hasContentAccess) return <Card className="mx-auto mt-12 max-w-2xl text-center"><FileText className="mx-auto size-9 text-coral" /><h2 className="mt-4 font-display text-3xl font-semibold">Internal Content access required</h2><p className="mt-3 leading-7 text-ink-muted">This detail surface is not available to Client roles.</p></Card>
   if (loading) return <div className="grid min-h-[60vh] place-items-center"><LoaderCircle className="size-8 animate-spin text-coral" /></div>
-  if (!detail || !workflow || !session) return <Card className="mx-auto max-w-2xl text-center"><FileText className="mx-auto size-9 text-ink-faint" /><h2 className="mt-4 font-display text-3xl font-semibold">Content unavailable</h2><p className="mt-3 text-sm leading-6 text-ink-muted">{error}</p><Button className="mt-5" onClick={() => navigate('/content')}><ArrowLeft className="size-4" />Back to Content</Button></Card>
+  if (!detail || !workflow || !review || !session) return <Card className="mx-auto max-w-2xl text-center"><FileText className="mx-auto size-9 text-ink-faint" /><h2 className="mt-4 font-display text-3xl font-semibold">Content unavailable</h2><p className="mt-3 text-sm leading-6 text-ink-muted">{error}</p><Button className="mt-5" onClick={() => navigate('/content')}><ArrowLeft className="size-4" />Back to Content</Button></Card>
 
   const { content, sourceIdea, sourceReferences } = detail
   const client = catalog.clients.find((item) => item.id === content.client_id)
@@ -82,7 +90,16 @@ export function ContentDetailPage() {
 
       {error ? <div className="rounded-md border border-coral/30 bg-coral/8 p-3 text-sm text-coral-dark">{error}</div> : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <nav className="flex gap-1 overflow-x-auto rounded-lg border border-line bg-paper p-1" aria-label="Content detail sections">
+        {(['overview','script','production','review','activity'] as const).map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-md px-4 py-2.5 text-sm font-bold transition ${activeTab === tab ? 'bg-ink text-paper shadow-sm' : 'text-ink-muted hover:bg-canvas-raised hover:text-ink'}`}>{tab === 'review' ? 'Review & Revisions' : tab === 'activity' ? 'Timeline / Activity' : label(tab)}</button>)}
+      </nav>
+
+      {activeTab === 'script' ? <ScriptWorkspace contentId={content.id} scripts={review.scripts} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
+      {activeTab === 'production' ? <ProductionWorkspace key={content.id + '-' + content.updated_at} workspaceId={workspace!.id} content={content} bundle={workflow} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
+      {activeTab === 'review' ? <ReviewWorkspace content={content} bundle={review} contributors={workflow.contributors} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
+      {activeTab === 'activity' ? <TimelineWorkspace bundle={workflow} /> : null}
+
+      {activeTab === 'overview' ? <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
           <Card>
             <div className="flex items-center gap-2"><FileText className="size-4 text-coral" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Overview</p></div>
@@ -98,7 +115,6 @@ export function ContentDetailPage() {
             {sourceIdea ? <div className="mt-5 space-y-5"><div className="rounded-lg border border-gold/25 bg-gold/5 p-4"><p className="text-xs font-bold uppercase tracking-wider text-gold-dark">Source Idea</p><h3 className="mt-2 font-display text-2xl font-semibold">{sourceIdea.title}</h3><p className="mt-2 text-sm leading-6 text-ink-muted">{sourceIdea.our_angle || sourceIdea.original_topic || 'Source Idea retained without deleting its original record.'}</p><Link to="/ideas" className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-coral hover:underline">Open Idea Bank <ExternalLink className="size-3.5" /></Link></div><div><div className="flex items-center gap-2"><BookOpen className="size-4 text-blue" /><h3 className="text-sm font-bold">Source References · {sourceReferences.length}</h3></div>{sourceReferences.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2">{sourceReferences.map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noreferrer" className="rounded-lg border border-line p-4 transition hover:border-blue/40 hover:bg-blue/[0.025]"><p className="font-bold">{reference.title}</p><p className="mt-1 truncate text-xs text-blue">{reference.url}</p></a>)}</div> : <p className="mt-2 text-sm text-ink-muted">The source Idea has no linked Reference.</p>}</div><div className="flex items-center gap-2 text-sm text-ink-muted"><UserRound className="size-4" />{content.contributors.length} preserved Content contributor record{content.contributors.length === 1 ? '' : 's'}</div></div> : content.source_idea_id ? <div className="mt-5 rounded-lg border border-dashed border-gold/35 bg-gold/5 p-6"><p className="font-bold">Source Idea retained</p><p className="mt-2 text-sm leading-6 text-ink-muted">The provenance link remains intact. Idea and Reference details require an authorized planning role.</p></div> : <div className="mt-5 rounded-lg border border-dashed border-line-strong p-6"><p className="font-bold">Direct-created Content</p><p className="mt-2 text-sm leading-6 text-ink-muted">{content.direct_creation_reason}</p></div>}
           </Card>
 
-          <ProductionWorkspace key={content.id + '-' + content.updated_at} workspaceId={workspace!.id} content={content} bundle={workflow} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} />
 
           <Card>
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Notes & visibility</p>
@@ -107,10 +123,10 @@ export function ContentDetailPage() {
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-28 xl:self-start">
-          <Card tone="quiet"><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-coral">Current context</p><dl className="mt-4 space-y-4"><div><dt className="text-xs text-ink-muted">Production state</dt><dd className="mt-1 font-bold">{label(content.current_status)}</dd></div><div><dt className="text-xs text-ink-muted">Workflow integrity</dt><dd className="mt-1 text-sm font-semibold">Event-backed · no status dropdown</dd></div><div><dt className="text-xs text-ink-muted">Last updated</dt><dd className="mt-1 text-sm font-semibold">{new Date(content.updated_at).toLocaleString('en-MY')}</dd></div></dl><p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-ink-muted">First Cut, Review, Approval, Publication, and Analytics remain deferred to later phases.</p></Card>
+          <Card tone="quiet"><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-coral">Current context</p><dl className="mt-4 space-y-4"><div><dt className="text-xs text-ink-muted">Production state</dt><dd className="mt-1 font-bold">{label(content.current_status)}</dd></div><div><dt className="text-xs text-ink-muted">Workflow integrity</dt><dd className="mt-1 text-sm font-semibold">Event-backed · no status dropdown</dd></div><div><dt className="text-xs text-ink-muted">Last updated</dt><dd className="mt-1 text-sm font-semibold">{new Date(content.updated_at).toLocaleString('en-MY')}</dd></div></dl><p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-ink-muted">Review actions are version-targeted and enforced by active assignments.</p></Card>
           {content.record_status === 'archived' ? <Card className="border-coral/25 bg-coral/[0.035]"><p className="text-xs font-bold uppercase tracking-wider text-coral-dark">Archived record</p><p className="mt-2 text-sm leading-6">{content.archive_reason}</p></Card> : null}
         </aside>
-      </div>
+      </div> : null}
 
       {editing && workspace && canManageContent ? <ContentFormDrawer workspaceId={workspace.id} catalog={catalog} content={content} canManagePrivateNotes={isSuperAdmin || isManager} onClose={() => setEditing(false)} onSaved={async () => { setEditing(false); await refresh() }} /> : null}
     </div>
