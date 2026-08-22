@@ -14,6 +14,9 @@ import { loadWorkflowBundle } from '../features/content/workflow-api'
 import type { WorkflowBundle } from '../features/content/workflow-api'
 import { loadReviewBundle } from '../features/content/review-api'
 import type { ReviewBundle } from '../features/content/review-api'
+import { PublishingWorkspace } from '../features/publishing/PublishingWorkspace'
+import { loadPublishingBundle } from '../features/publishing/publishing-api'
+import type { PublishingBundle } from '../features/publishing/publishing-api'
 
 const emptyCatalog: ContentCatalog = { clients: [], categories: [], campaigns: [] }
 
@@ -28,12 +31,13 @@ export function ContentDetailPage() {
   const [detail, setDetail] = useState<ContentDetail | null>(null)
   const [workflow, setWorkflow] = useState<WorkflowBundle | null>(null)
   const [review, setReview] = useState<ReviewBundle | null>(null)
+  const [publishing, setPublishing] = useState<PublishingBundle | null>(null)
   const [catalog, setCatalog] = useState<ContentCatalog>(emptyCatalog)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'script' | 'production' | 'review' | 'activity'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'script' | 'production' | 'review' | 'publishing' | 'activity'>('overview')
 
   const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
   const isManager = workspace?.roles.includes('Internal Manager') ?? false
@@ -44,13 +48,14 @@ export function ContentDetailPage() {
     if (!workspace || !contentId || !hasContentAccess) return
     setLoading(true); setError(null)
     try {
-      const [nextDetail, nextCatalog, nextWorkflow, nextReview] = await Promise.all([
+      const [nextDetail, nextCatalog, nextWorkflow, nextReview, nextPublishing] = await Promise.all([
         loadContentDetail(workspace.id, contentId),
         loadContentCatalog(workspace.id),
         loadWorkflowBundle(contentId),
         loadReviewBundle(contentId),
+        loadPublishingBundle(contentId),
       ])
-      setDetail(nextDetail); setCatalog(nextCatalog); setWorkflow(nextWorkflow); setReview(nextReview)
+      setDetail(nextDetail); setCatalog(nextCatalog); setWorkflow(nextWorkflow); setReview(nextReview); setPublishing(nextPublishing)
       if (!nextDetail) setError('Content not found or outside your authorized Client scope.')
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not load Content detail') }
     finally { setLoading(false) }
@@ -70,7 +75,7 @@ export function ContentDetailPage() {
 
   if (!hasContentAccess) return <Card className="mx-auto mt-12 max-w-2xl text-center"><FileText className="mx-auto size-9 text-coral" /><h2 className="mt-4 font-display text-3xl font-semibold">Internal Content access required</h2><p className="mt-3 leading-7 text-ink-muted">This detail surface is not available to Client roles.</p></Card>
   if (loading) return <div className="grid min-h-[60vh] place-items-center"><LoaderCircle className="size-8 animate-spin text-coral" /></div>
-  if (!detail || !workflow || !review || !session) return <Card className="mx-auto max-w-2xl text-center"><FileText className="mx-auto size-9 text-ink-faint" /><h2 className="mt-4 font-display text-3xl font-semibold">Content unavailable</h2><p className="mt-3 text-sm leading-6 text-ink-muted">{error}</p><Button className="mt-5" onClick={() => navigate('/content')}><ArrowLeft className="size-4" />Back to Content</Button></Card>
+  if (!detail || !workflow || !review || !publishing || !session) return <Card className="mx-auto max-w-2xl text-center"><FileText className="mx-auto size-9 text-ink-faint" /><h2 className="mt-4 font-display text-3xl font-semibold">Content unavailable</h2><p className="mt-3 text-sm leading-6 text-ink-muted">{error}</p><Button className="mt-5" onClick={() => navigate('/content')}><ArrowLeft className="size-4" />Back to Content</Button></Card>
 
   const { content, sourceIdea, sourceReferences } = detail
   const client = catalog.clients.find((item) => item.id === content.client_id)
@@ -91,12 +96,13 @@ export function ContentDetailPage() {
       {error ? <div className="rounded-md border border-coral/30 bg-coral/8 p-3 text-sm text-coral-dark">{error}</div> : null}
 
       <nav className="flex gap-1 overflow-x-auto rounded-lg border border-line bg-paper p-1" aria-label="Content detail sections">
-        {(['overview','script','production','review','activity'] as const).map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-md px-4 py-2.5 text-sm font-bold transition ${activeTab === tab ? 'bg-ink text-paper shadow-sm' : 'text-ink-muted hover:bg-canvas-raised hover:text-ink'}`}>{tab === 'review' ? 'Review & Revisions' : tab === 'activity' ? 'Timeline / Activity' : label(tab)}</button>)}
+        {(['overview','script','production','review','publishing','activity'] as const).map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-md px-4 py-2.5 text-sm font-bold transition ${activeTab === tab ? 'bg-ink text-paper shadow-sm' : 'text-ink-muted hover:bg-canvas-raised hover:text-ink'}`}>{tab === 'review' ? 'Review & Revisions' : tab === 'publishing' ? 'Publications & Analytics' : tab === 'activity' ? 'Timeline / Activity' : label(tab)}</button>)}
       </nav>
 
       {activeTab === 'script' ? <ScriptWorkspace contentId={content.id} scripts={review.scripts} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
       {activeTab === 'production' ? <ProductionWorkspace key={content.id + '-' + content.updated_at} workspaceId={workspace!.id} content={content} bundle={workflow} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
       {activeTab === 'review' ? <ReviewWorkspace content={content} bundle={review} contributors={workflow.contributors} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
+      {activeTab === 'publishing' ? <PublishingWorkspace content={content} bundle={publishing} contributors={workflow.contributors} currentUserId={session.user.id} workspaceRoles={workspace!.roles} canManage={Boolean(canManageContent)} onChanged={refresh} /> : null}
       {activeTab === 'activity' ? <TimelineWorkspace bundle={workflow} /> : null}
 
       {activeTab === 'overview' ? <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">

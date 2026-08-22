@@ -46,6 +46,7 @@ export interface ContentRecord {
   objective: string | null
   priority: 'low' | 'normal' | 'high' | 'urgent'
   current_status: ContentStatus
+  publication_state: 'not_published' | 'partially_published' | 'fully_published' | 'needs_attention'
   current_owner_user_id: string | null
   current_owner_name: string | null
   internal_notes: string | null
@@ -133,18 +134,26 @@ export async function loadContents(workspaceId: string, contentId?: string) {
   const rows = (result.data ?? []) as Omit<ContentRecord, 'tags' | 'contributors'>[]
   const ids = rows.map((row) => row.id)
   if (ids.length === 0) return []
-  const [tagLinks, contributors] = await Promise.all([
+  const [tagLinks, contributors, publications] = await Promise.all([
     supabase.from('content_tags').select('content_id, tag_id').in('content_id', ids),
     supabase.from('content_contributors').select('content_id, user_profile_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
+    supabase.from('publications').select('content_id, is_required, status').in('content_id', ids),
   ])
-  fail(tagLinks.error); fail(contributors.error)
+  fail(tagLinks.error); fail(contributors.error); fail(publications.error)
   const tagIds = [...new Set((tagLinks.data ?? []).map((row) => row.tag_id as string))]
   const tags = tagIds.length
     ? await supabase.from('tags').select('id, name').in('id', tagIds)
     : { data: [], error: null }
   fail(tags.error)
-  return rows.map((row) => ({
+  return rows.map((row) => {
+    const publicationRows = (publications.data ?? []).filter((item) => item.content_id === row.id)
+    const required = publicationRows.filter((item) => item.is_required)
+    const published = required.filter((item) => item.status === 'published').length
+    const attention = publicationRows.some((item) => item.status === 'failed' || (item.is_required && item.status === 'cancelled'))
+    const publication_state = attention ? 'needs_attention' : !required.length || !published ? 'not_published' : published < required.length ? 'partially_published' : 'fully_published'
+    return ({
     ...row,
+    publication_state,
     tags: (tagLinks.data ?? [])
       .filter((item) => item.content_id === row.id)
       .map((item) => (tags.data ?? []).find((tag) => tag.id === item.tag_id)?.name as string)
@@ -156,7 +165,7 @@ export async function loadContents(workspaceId: string, contentId?: string) {
         roleId: item.contribution_role_id as string,
         notes: item.notes as string | null,
       })),
-  })) as ContentRecord[]
+  })}) as ContentRecord[]
 }
 
 export async function loadContentDetail(workspaceId: string, contentId: string): Promise<ContentDetail | null> {
