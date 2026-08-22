@@ -135,7 +135,7 @@ export async function loadContents(workspaceId: string, contentId?: string) {
   if (ids.length === 0) return []
   const [tagLinks, contributors] = await Promise.all([
     supabase.from('content_tags').select('content_id, tag_id').in('content_id', ids),
-    supabase.from('content_contributors').select('content_id, user_profile_id, contribution_role_id, notes').in('content_id', ids),
+    supabase.from('content_contributors').select('content_id, user_profile_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
   ])
   fail(tagLinks.error); fail(contributors.error)
   const tagIds = [...new Set((tagLinks.data ?? []).map((row) => row.tag_id as string))]

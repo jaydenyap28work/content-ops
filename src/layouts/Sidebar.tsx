@@ -13,6 +13,7 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
   const { workspace } = useAuth()
   const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
   const hasResearchAccess = isSuperAdmin || workspace?.roles.includes('Internal Manager') || workspace?.roles.includes('Strategist / Content Planner')
+  const hasInternalAccess = workspace?.roles.some((role) => !['Client Admin', 'Client Viewer'].includes(role)) ?? false
 
   return (
     <>
@@ -38,7 +39,10 @@ function NavigationContent({ onNavigate }: { onNavigate?: () => void }) {
             </p>
             <div className="space-y-1">
               {routeDefinitions
-                .filter((route) => route.section === section && (route.path !== '/team' || isSuperAdmin) && (!['/references', '/ideas', '/content'].includes(route.path) || hasResearchAccess))
+                .filter((route) => route.section === section
+                  && (route.path !== '/team' || isSuperAdmin)
+                  && (!['/references', '/ideas'].includes(route.path) || hasResearchAccess)
+                  && (route.path !== '/content' || hasInternalAccess))
                 .map((route) => {
                   const Icon = route.icon
                   return (
