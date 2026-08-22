@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Archive, ArrowRight, Columns3, LayoutList, Lightbulb, LoaderCircle, MoreHorizontal, Pencil, Plus, Search, X, XCircle } from 'lucide-react'
+import { Archive, ArrowRight, Columns3, LayoutList, Lightbulb, LoaderCircle, MoreHorizontal, Pencil, Plus, Search, Sparkles, X, XCircle } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Card, Input, Select, StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
@@ -11,7 +11,8 @@ import { changeIdeaStatus, loadIdeas, loadReferences, loadResearchCatalog } from
 import type { IdeaRecord, IdeaStatus, ReferenceRecord, ResearchCatalog } from '../features/research/research-api'
 import { useDevMountCounter } from '../lib/dev-diagnostics'
 import { ShootingBrief } from '../features/pilot/ShootingBrief'
-import { bulkUpdateIdeas } from '../features/pilot/pilot-api'
+import { bulkUpdateIdeas, generateShootingBriefs } from '../features/pilot/pilot-api'
+import { toShootingBriefGenerationInput } from '../features/pilot/shooting-brief-templates'
 import { loadContributorOptions } from '../features/research/research-api'
 import type { ContributorOption } from '../features/research/research-api'
 
@@ -154,6 +155,15 @@ export function IdeasPage() {
   }), [categoryFilter, clientFilter, ideas, referenceFilter, search, statusFilter])
 
   async function applyBulk(){if(!selectedIds.length||!bulkValue.trim())return;setBusy(true);setError(null);try{const values=bulkField==='tags'?bulkValue.split(',').map(value=>value.trim()).filter(Boolean):[bulkValue];await bulkUpdateIdeas(selectedIds,bulkField,values);setNotice(`${selectedIds.length} Ideas updated.`);setSelectedIds([]);setBulkValue('');await refresh()}catch(caught){setError(caught instanceof Error?caught.message:'Bulk update failed')}finally{setBusy(false)}}
+  async function generateSelectedBriefs(){
+    const selectedIdeas=ideas.filter((idea)=>selectedIds.includes(idea.id))
+    const invalid=selectedIdeas.filter((idea)=>!['approved','converted'].includes(idea.status))
+    if(invalid.length){setError('请先将所选 Idea 推进为 Approved，再生成拍摄简报。');return}
+    setBusy(true);setError(null)
+    try{await generateShootingBriefs(selectedIdeas.map(toShootingBriefGenerationInput));setNotice(`已为 ${selectedIdeas.length} 条 Idea 生成拍摄简报；已有修改不会被覆盖。`);setSelectedIds([])}
+    catch(caught){setError(caught instanceof Error?caught.message:'无法批量生成拍摄简报')}
+    finally{setBusy(false)}
+  }
 
   async function transition(idea: IdeaRecord, status: IdeaStatus) {
     let reason = ''
@@ -199,7 +209,7 @@ export function IdeasPage() {
         </div>
       </Card>
 
-      {selectedIds.length?<Card className="flex flex-col gap-3 border-coral/25 bg-coral/[.035] p-3 sm:flex-row sm:items-center"><p className="text-sm font-bold">已选择 {selectedIds.length} 条</p><Select value={bulkField} onChange={e=>{setBulkField(e.target.value as typeof bulkField);setBulkValue('')}} className="sm:w-44"><option value="owner">Assign Owner</option><option value="planned_date">Planned Date</option><option value="priority">Priority</option><option value="category">Category</option><option value="tags">Tags</option></Select>{bulkField==='owner'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} disabled={clientFilter==='all'} className="sm:w-52"><option value="">{clientFilter==='all'?'先筛选单一 Client':'Choose Owner'}</option>{ownerOptions.map(option=><option key={option.user_profile_id} value={option.user_profile_id}>{option.display_name}</option>)}</Select>:bulkField==='priority'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-40"><option value="">Choose</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></Select>:bulkField==='category'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-52"><option value="">Choose Category</option>{catalog.categories.map(category=><option key={category.id} value={category.id}>{category.name}</option>)}</Select>:<Input type={bulkField==='planned_date'?'date':'text'} placeholder={bulkField==='tags'?'Comma-separated tags':''} value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:max-w-xs"/>}<Button size="sm" onClick={()=>void applyBulk()} disabled={busy||!bulkValue}>Apply</Button><Button size="sm" variant="ghost" onClick={()=>setSelectedIds([])}>Clear</Button></Card>:null}
+      {selectedIds.length?<Card className="flex flex-col gap-3 border-coral/25 bg-coral/[.035] p-3 sm:flex-row sm:flex-wrap sm:items-center"><p className="text-sm font-bold">已选择 {selectedIds.length} 条</p><Select value={bulkField} onChange={e=>{setBulkField(e.target.value as typeof bulkField);setBulkValue('')}} className="sm:w-44"><option value="owner">Assign Owner</option><option value="planned_date">Planned Date</option><option value="priority">Priority</option><option value="category">Category</option><option value="tags">Tags</option></Select>{bulkField==='owner'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} disabled={clientFilter==='all'} className="sm:w-52"><option value="">{clientFilter==='all'?'先筛选单一 Client':'Choose Owner'}</option>{ownerOptions.map(option=><option key={option.user_profile_id} value={option.user_profile_id}>{option.display_name}</option>)}</Select>:bulkField==='priority'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-40"><option value="">Choose</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></Select>:bulkField==='category'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-52"><option value="">Choose Category</option>{catalog.categories.map(category=><option key={category.id} value={category.id}>{category.name}</option>)}</Select>:<Input type={bulkField==='planned_date'?'date':'text'} placeholder={bulkField==='tags'?'Comma-separated tags':''} value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:max-w-xs"/>}<Button size="sm" onClick={()=>void applyBulk()} disabled={busy||!bulkValue}>Apply</Button><Button size="sm" variant="secondary" onClick={()=>void generateSelectedBriefs()} disabled={busy}><Sparkles className="size-4"/>批量生成拍摄简报</Button><Button size="sm" variant="ghost" onClick={()=>setSelectedIds([])}>Clear</Button></Card>:null}
 
       <Card className="overflow-hidden p-0">
         {loading ? <div className="grid min-h-72 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></div> : filtered.length === 0 ? <div className="grid min-h-72 place-items-center text-center"><div><Lightbulb className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">No matching Ideas</h3><p className="mt-2 text-sm text-ink-muted">Capture a new angle or clear a filter.</p></div></div> : view === 'planner' ? <IdeaPlannerView ideas={filtered} catalog={catalog} selectedIds={selectedIds} onToggle={(ideaId,checked)=>setSelectedIds(current=>checked?[...current,ideaId]:current.filter(id=>id!==ideaId))} onSelect={(idea) => setSelectedId(idea.id)} /> : <IdeaBoardView ideas={filtered} onSelect={(idea) => setSelectedId(idea.id)} />}
