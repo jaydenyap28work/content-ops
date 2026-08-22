@@ -1,0 +1,27 @@
+// @vitest-environment jsdom
+
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { IdeaPlannerView } from './IdeaPlannerView'
+import type { IdeaRecord, ResearchCatalog } from './research-api'
+
+const catalog: ResearchCatalog = { clients: [], platforms: [], categories: [], contributionRoles: [] }
+const row = {
+  id: 'idea', workspace_id: 'workspace', client_id: 'client', title: 'Mobile planning row', planned_date: '2026-09-02',
+  source_url: null, original_topic: null, original_hook: null, why_it_works: null, our_angle: null, category_id: null,
+  suggested_format: null, priority: 'normal', status: 'new', owner_user_id: null, created_by: 'user', owner_name: null,
+  creator_name: 'Jayden', linked_content_id: null, linked_content_code: null, linked_content_status: null,
+  linked_content_record_status: null, linked_content_planned_date: null, notes: null, status_reason: null,
+  created_at: '2026-08-20', updated_at: '2026-08-20', referenceIds: [], tags: [], contributors: [],
+} satisfies IdeaRecord
+
+describe('IdeaPlannerView responsive structure', () => {
+  it('uses a dense desktop table and separate compact mobile rows', () => {
+    render(<IdeaPlannerView ideas={[row]} catalog={catalog} onSelect={vi.fn()} />)
+    expect(screen.getByTestId('idea-planner-desktop').className).toContain('hidden')
+    expect(screen.getByTestId('idea-planner-desktop').className).toContain('lg:block')
+    expect(screen.getByTestId('idea-planner-mobile').className).toContain('lg:hidden')
+    expect(screen.getByRole('columnheader', { name: 'Planned Date' })).toBeTruthy()
+    expect(screen.getAllByText('Mobile planning row')).toHaveLength(2)
+  })
+})

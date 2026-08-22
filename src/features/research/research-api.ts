@@ -38,6 +38,7 @@ export interface IdeaRecord {
   workspace_id: string
   client_id: string
   title: string
+  planned_date: string | null
   source_url: string | null
   original_topic: string | null
   original_hook: string | null
@@ -48,6 +49,14 @@ export interface IdeaRecord {
   priority: 'low' | 'normal' | 'high' | 'urgent'
   status: IdeaStatus
   owner_user_id: string | null
+  created_by: string
+  owner_name: string | null
+  creator_name: string | null
+  linked_content_id: string | null
+  linked_content_code: string | null
+  linked_content_status: string | null
+  linked_content_record_status: string | null
+  linked_content_planned_date: string | null
   notes: string | null
   status_reason: string | null
   created_at: string
@@ -107,8 +116,11 @@ export async function loadReferences(workspaceId: string) {
 }
 
 export async function loadIdeas(workspaceId: string) {
-  const ideas = await supabase.from('ideas').select('id, workspace_id, client_id, title, source_url, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, owner_user_id, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false })
-  fail(ideas.error)
+  const [ideas, plannerContext] = await Promise.all([
+    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, source_url, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('planned_date', { ascending: true, nullsFirst: false }),
+    supabase.rpc('list_idea_planner_context', { target_workspace_id: workspaceId }),
+  ])
+  fail(ideas.error); fail(plannerContext.error)
   const ids = (ideas.data ?? []).map((row) => row.id as string)
   if (ids.length === 0) return []
   const [refs, contributors, tagLinks] = await Promise.all([
@@ -122,6 +134,7 @@ export async function loadIdeas(workspaceId: string) {
   fail(tags.error)
   return (ideas.data ?? []).map((row) => ({
     ...row,
+    ...(plannerContext.data ?? []).find((item: { idea_id: string }) => item.idea_id === row.id),
     referenceIds: (refs.data ?? []).filter((item) => item.idea_id === row.id).map((item) => item.reference_id as string),
     tags: (tagLinks.data ?? []).filter((item) => item.idea_id === row.id).map((item) => (tags.data ?? []).find((tag) => tag.id === item.tag_id)?.name as string).filter(Boolean),
     contributors: (contributors.data ?? []).filter((item) => item.idea_id === row.id).map((item) => ({ userId: item.user_profile_id as string, roleId: item.contribution_role_id as string, notes: item.notes as string | null })),
@@ -149,7 +162,7 @@ export async function archiveReference(id: string) {
 }
 
 export async function saveIdea(workspaceId: string, values: {
-  id?: string; clientId: string; title: string; sourceUrl: string; originalTopic: string; originalHook: string;
+  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; originalTopic: string; originalHook: string;
   whyItWorks: string; ourAngle: string; categoryId: string | null; suggestedFormat: string; priority: string;
   ownerUserId: string | null; notes: string; referenceIds: string[]; tags: string[];
   contributors: Array<{ userId: string; roleId: string; notes?: string }>
@@ -161,6 +174,7 @@ export async function saveIdea(workspaceId: string, values: {
     target_category_id: values.categoryId, target_suggested_format: values.suggestedFormat, target_priority: values.priority,
     target_owner_user_id: values.ownerUserId, target_notes: values.notes, target_reference_ids: values.referenceIds,
     target_tag_names: values.tags, target_contributors: values.contributors,
+    target_planned_date: values.plannedDate || null,
   })
   fail(error); return data as string
 }

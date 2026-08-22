@@ -32,6 +32,7 @@ type ContributorDraft = { userId: string; roleId: string }
 interface IdeaFormState {
   clientId: string
   title: string
+  plannedDate: string
   sourceUrl: string
   originalTopic: string
   originalHook: string
@@ -59,6 +60,7 @@ interface IdeaFormDrawerProps {
 const emptyForm: IdeaFormState = {
   clientId: '',
   title: '',
+  plannedDate: '',
   sourceUrl: '',
   originalTopic: '',
   originalHook: '',
@@ -90,6 +92,7 @@ function initialForm(
   return {
     clientId: idea.client_id,
     title: idea.title,
+    plannedDate: idea.planned_date ?? '',
     sourceUrl: idea.source_url ?? '',
     originalTopic: idea.original_topic ?? '',
     originalHook: idea.original_hook ?? '',
@@ -364,6 +367,18 @@ export function IdeaFormDrawer({
                   <option key={client.id} value={client.id}>{client.name}</option>
                 ))}
               </Select>
+            </FormField>
+            <FormField
+              label="Planned Date"
+              htmlFor="idea-planned-date"
+              hint="Planning target only — not an actual publish date."
+            >
+              <Input
+                id="idea-planned-date"
+                type="date"
+                value={form.plannedDate}
+                onChange={(event) => setForm({ ...form, plannedDate: event.target.value })}
+              />
             </FormField>
             <FormField label="Priority" htmlFor="idea-priority">
               <Select
