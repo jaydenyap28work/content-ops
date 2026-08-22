@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Archive, ArrowRight, Columns3, LayoutList, Lightbulb, LoaderCircle, MoreHorizontal, Pencil, Plus, Search, X, XCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Card, Input, Select, StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
 import { IdeaConversionDrawer } from '../features/content/IdeaConversionDrawer'
@@ -10,6 +10,10 @@ import { filterPlannerIdeas, formatPlannedDate, getDisplayedProductionStatus, ge
 import { changeIdeaStatus, loadIdeas, loadReferences, loadResearchCatalog } from '../features/research/research-api'
 import type { IdeaRecord, IdeaStatus, ReferenceRecord, ResearchCatalog } from '../features/research/research-api'
 import { useDevMountCounter } from '../lib/dev-diagnostics'
+import { ShootingBrief } from '../features/pilot/ShootingBrief'
+import { bulkUpdateIdeas } from '../features/pilot/pilot-api'
+import { loadContributorOptions } from '../features/research/research-api'
+import type { ContributorOption } from '../features/research/research-api'
 
 const statuses: Array<{ value: IdeaStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All' }, { value: 'new', label: 'New' }, { value: 'evaluating', label: 'Evaluating' },
@@ -70,11 +74,13 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
             </Button>
           </div>
 
+          {idea.status==='approved'||idea.status==='converted'?<div className="mt-6"><ShootingBrief idea={idea} references={references}/></div>:null}
+
           <details className="mt-6 rounded-xl border border-line bg-paper">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-bold"><span className="inline-flex items-center gap-2"><MoreHorizontal className="size-4 text-coral" />More details</span><span className="text-xs text-ink-faint">Sources · Contributors · Notes</span></summary>
             <div className="space-y-5 border-t border-line px-4 py-4 text-sm">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><p className="font-bold">Owner / Creator</p><p className="mt-1 text-ink-muted">{idea.owner_name || idea.creator_name || 'Unassigned'}</p></div>
+                <div><p className="font-bold">Owner / 负责人</p><p className="mt-1 text-ink-muted">{idea.owner_name || 'Unassigned'}</p></div><div><p className="font-bold">Creator / 创建者</p><p className="mt-1 text-ink-muted">{idea.creator_name || 'Unknown'}</p></div>
                 <div><p className="font-bold">Suggested format</p><p className="mt-1 text-ink-muted">{idea.suggested_format || '—'}</p></div>
               </div>
               <div><p className="font-bold">Why it works</p><p className="mt-1 whitespace-pre-wrap leading-6 text-ink-muted">{idea.why_it_works || '—'}</p></div>
@@ -89,8 +95,10 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
 
         <footer className="flex flex-wrap gap-2 border-t border-line bg-paper px-5 py-4 sm:px-6">
           <Button variant="secondary" disabled={isLocked || busy} onClick={onEdit}><Pencil className="size-4" />Edit</Button>
+          {idea.status==='evaluating'?<Button variant="ghost" disabled={busy} onClick={()=>onTransition('new')}>撤回评估</Button>:null}
+          {idea.status==='approved'||idea.status==='rejected'?<Button variant="ghost" disabled={busy} onClick={()=>onTransition('evaluating')}>重新评估</Button>:null}
           {idea.status !== 'rejected' && idea.status !== 'converted' && idea.status !== 'archived' ? <Button variant="ghost" disabled={busy} onClick={() => onTransition('rejected')}><XCircle className="size-4" />Reject</Button> : null}
-          {idea.status !== 'archived' ? <Button variant="ghost" disabled={busy} onClick={() => onTransition('archived')}><Archive className="size-4" />Archive</Button> : null}
+          {idea.status !== 'archived' && idea.status !== 'converted' ? <Button variant="ghost" disabled={busy} onClick={() => onTransition('archived')}><Archive className="size-4" />Archive</Button> : null}
         </footer>
       </aside>
     </div>
@@ -101,6 +109,7 @@ export function IdeasPage() {
   useDevMountCounter('IdeasPage')
   const { workspace } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [catalog, setCatalog] = useState<ResearchCatalog>({ clients: [], platforms: [], categories: [], contributionRoles: [] })
   const [ideas, setIdeas] = useState<IdeaRecord[]>([])
   const [references, setReferences] = useState<ReferenceRecord[]>([])
@@ -114,9 +123,13 @@ export function IdeasPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [referenceFilter, setReferenceFilter] = useState<'all' | 'with' | 'without'>('all')
   const [view, setView] = useState<'planner' | 'board'>('planner')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('idea'))
   const [editing, setEditing] = useState<IdeaRecord | null | undefined>(undefined)
   const [converting, setConverting] = useState<IdeaRecord | null>(null)
+  const [selectedIds,setSelectedIds]=useState<string[]>([])
+  const [bulkField,setBulkField]=useState<'owner'|'planned_date'|'priority'|'category'|'tags'>('owner')
+  const [bulkValue,setBulkValue]=useState('')
+  const [ownerOptions,setOwnerOptions]=useState<ContributorOption[]>([])
 
   const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
   const hasResearchRole = isSuperAdmin || workspace?.roles.includes('Internal Manager') || workspace?.roles.includes('Strategist / Content Planner')
@@ -132,11 +145,15 @@ export function IdeasPage() {
     finally { setLoading(false) }
   }, [hasResearchRole, workspace])
 
+  useEffect(()=>{const timer=window.setTimeout(()=>{if(clientFilter==='all'){setOwnerOptions([]);return}void loadContributorOptions(clientFilter).then(setOwnerOptions)},0);return()=>window.clearTimeout(timer)},[clientFilter])
+
   useEffect(() => { const timer = window.setTimeout(() => void refresh(), 0); return () => window.clearTimeout(timer) }, [refresh])
 
   const filtered = useMemo(() => filterPlannerIdeas(ideas, {
     search, status: statusFilter, clientId: clientFilter, categoryId: categoryFilter, reference: referenceFilter,
   }), [categoryFilter, clientFilter, ideas, referenceFilter, search, statusFilter])
+
+  async function applyBulk(){if(!selectedIds.length||!bulkValue.trim())return;setBusy(true);setError(null);try{const values=bulkField==='tags'?bulkValue.split(',').map(value=>value.trim()).filter(Boolean):[bulkValue];await bulkUpdateIdeas(selectedIds,bulkField,values);setNotice(`${selectedIds.length} Ideas updated.`);setSelectedIds([]);setBulkValue('');await refresh()}catch(caught){setError(caught instanceof Error?caught.message:'Bulk update failed')}finally{setBusy(false)}}
 
   async function transition(idea: IdeaRecord, status: IdeaStatus) {
     let reason = ''
@@ -160,8 +177,8 @@ export function IdeasPage() {
   return (
     <div className="page-enter space-y-5" aria-busy={busy}>
       <header className="flex flex-col gap-4 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">Planning / Idea Bank</p><h2 className="mt-1.5 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">Content Planner</h2><p className="mt-2 text-sm text-ink-muted">Scan dates, decisions and production progress without opening every Idea.</p></div>
-        <Button onClick={() => setEditing(null)}><Plus className="size-4" />New Idea</Button>
+        <div><p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">日常工作 / Content Plan</p><h2 className="mt-1.5 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">内容计划</h2><p className="mt-2 text-sm text-ink-muted">一眼查看排期、负责人、状态与下一步，不需要逐条打开。</p></div>
+        <Button onClick={() => setEditing(null)}><Plus className="size-4" />新增选题</Button>
       </header>
 
       {error ? <div role="alert" className="rounded-lg border border-coral/30 bg-coral/8 px-4 py-3 text-sm text-coral-dark">{error}</div> : null}
@@ -182,11 +199,13 @@ export function IdeasPage() {
         </div>
       </Card>
 
+      {selectedIds.length?<Card className="flex flex-col gap-3 border-coral/25 bg-coral/[.035] p-3 sm:flex-row sm:items-center"><p className="text-sm font-bold">已选择 {selectedIds.length} 条</p><Select value={bulkField} onChange={e=>{setBulkField(e.target.value as typeof bulkField);setBulkValue('')}} className="sm:w-44"><option value="owner">Assign Owner</option><option value="planned_date">Planned Date</option><option value="priority">Priority</option><option value="category">Category</option><option value="tags">Tags</option></Select>{bulkField==='owner'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} disabled={clientFilter==='all'} className="sm:w-52"><option value="">{clientFilter==='all'?'先筛选单一 Client':'Choose Owner'}</option>{ownerOptions.map(option=><option key={option.user_profile_id} value={option.user_profile_id}>{option.display_name}</option>)}</Select>:bulkField==='priority'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-40"><option value="">Choose</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></Select>:bulkField==='category'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-52"><option value="">Choose Category</option>{catalog.categories.map(category=><option key={category.id} value={category.id}>{category.name}</option>)}</Select>:<Input type={bulkField==='planned_date'?'date':'text'} placeholder={bulkField==='tags'?'Comma-separated tags':''} value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:max-w-xs"/>}<Button size="sm" onClick={()=>void applyBulk()} disabled={busy||!bulkValue}>Apply</Button><Button size="sm" variant="ghost" onClick={()=>setSelectedIds([])}>Clear</Button></Card>:null}
+
       <Card className="overflow-hidden p-0">
-        {loading ? <div className="grid min-h-72 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></div> : filtered.length === 0 ? <div className="grid min-h-72 place-items-center text-center"><div><Lightbulb className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">No matching Ideas</h3><p className="mt-2 text-sm text-ink-muted">Capture a new angle or clear a filter.</p></div></div> : view === 'planner' ? <IdeaPlannerView ideas={filtered} catalog={catalog} onSelect={(idea) => setSelectedId(idea.id)} /> : <IdeaBoardView ideas={filtered} onSelect={(idea) => setSelectedId(idea.id)} />}
+        {loading ? <div className="grid min-h-72 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></div> : filtered.length === 0 ? <div className="grid min-h-72 place-items-center text-center"><div><Lightbulb className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">No matching Ideas</h3><p className="mt-2 text-sm text-ink-muted">Capture a new angle or clear a filter.</p></div></div> : view === 'planner' ? <IdeaPlannerView ideas={filtered} catalog={catalog} selectedIds={selectedIds} onToggle={(ideaId,checked)=>setSelectedIds(current=>checked?[...current,ideaId]:current.filter(id=>id!==ideaId))} onSelect={(idea) => setSelectedId(idea.id)} /> : <IdeaBoardView ideas={filtered} onSelect={(idea) => setSelectedId(idea.id)} />}
       </Card>
 
-      {selected ? <IdeaDetailDrawer idea={selected} catalog={catalog} references={references} busy={busy} onClose={() => setSelectedId(null)} onEdit={() => setEditing(selected)} onPrimaryAction={() => primaryAction(selected)} onTransition={(status) => void transition(selected, status)} /> : null}
+      {selected ? <IdeaDetailDrawer idea={selected} catalog={catalog} references={references} busy={busy} onClose={() => { setSelectedId(null); setSearchParams({}, { replace: true }) }} onEdit={() => setEditing(selected)} onPrimaryAction={() => primaryAction(selected)} onTransition={(status) => void transition(selected, status)} /> : null}
       {editing !== undefined && workspace ? <IdeaFormDrawer workspaceId={workspace.id} idea={editing} catalog={catalog} references={references} onClose={() => setEditing(undefined)} onSaved={async (message) => { setEditing(undefined); setNotice(message); await refresh() }} /> : null}
       {converting && workspace ? <IdeaConversionDrawer workspaceId={workspace.id} idea={converting} clientName={catalog.clients.find((client) => client.id === converting.client_id)?.name ?? 'Client'} categoryName={catalog.categories.find((category) => category.id === converting.category_id)?.name ?? null} references={references.filter((reference) => converting.referenceIds.includes(reference.id))} canManagePrivateNotes={isSuperAdmin || workspace.roles.includes('Internal Manager')} onClose={() => setConverting(null)} onConverted={async (contentId) => { setConverting(null); setSelectedId(null); await refresh(); navigate('/content/' + contentId) }} /> : null}
     </div>

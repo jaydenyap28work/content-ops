@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowRight, KeyRound, LoaderCircle, ShieldCheck } from 'lucide-react'
+import { ArrowRight, LogIn, KeyRound, LoaderCircle, ShieldCheck } from 'lucide-react'
 import { Button } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
 import { supabase } from '../lib/supabase'
+import { LanguageSwitch } from '../features/i18n/i18n'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -25,6 +26,10 @@ export function LoginPage() {
   if (status === 'authorized') {
     return <Navigate to={returnTo} replace />
   }
+
+  async function handleGoogle(){setSubmitting(true);setErrorMessage(null);const{error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error){setErrorMessage('Google 登录暂时无法使用，请使用 Email / Password。');setSubmitting(false)}}
+
+  async function forgotPassword(){if(!email.trim()){setErrorMessage('请先输入工作邮箱。');return}const{error}=await supabase.auth.resetPasswordForEmail(email.trim(),{redirectTo:window.location.origin+'/login'});setErrorMessage(error?'无法发送重设密码邮件。':'重设密码邮件已发送。')}
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -80,7 +85,7 @@ export function LoginPage() {
         </section>
 
         <section className="flex items-center border-t border-white/10 bg-paper px-6 py-12 text-ink sm:px-10 lg:border-l lg:border-t-0 lg:px-16">
-          <div className="w-full max-w-md lg:mx-auto">
+          <div className="w-full max-w-md lg:mx-auto"><div className="mb-6 flex justify-end"><LanguageSwitch compact /></div>
             <div className="grid size-12 place-items-center rounded-xl border border-line bg-canvas-raised text-coral">
               <KeyRound className="size-5" aria-hidden="true" />
             </div>
@@ -94,7 +99,7 @@ export function LoginPage() {
               Use the work account issued by your ContentOS administrator.
             </p>
 
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <Button type="button" size="lg" variant="secondary" className="mt-8 w-full" disabled={submitting} onClick={()=>void handleGoogle()}><LogIn className="size-4"/>Continue with Google</Button><div className="my-5 flex items-center gap-3 text-xs text-ink-faint"><span className="h-px flex-1 bg-line"/>or<span className="h-px flex-1 bg-line"/></div><form className="space-y-5" onSubmit={handleSubmit}>
               <label className="block">
                 <span className="mb-2 block text-sm font-bold">Work email</span>
                 <input
@@ -133,7 +138,7 @@ export function LoginPage() {
                 )}
                 {submitting ? 'Signing in…' : 'Sign in to ContentOS'}
               </Button>
-            </form>
+            </form><button type="button" onClick={()=>void forgotPassword()} className="mt-4 text-sm font-bold text-blue hover:underline">Forgot password</button>
 
             <p className="mt-6 text-xs leading-5 text-ink-muted">
               Public registration is not available. Access is provisioned by a

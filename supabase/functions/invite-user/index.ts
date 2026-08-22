@@ -11,6 +11,8 @@ interface InvitePayload {
   jobTitle?: string
   workspaceId?: string
   roleIds?: string[]
+  clientIds?: string[]
+  clientAccessRoleId?: string
 }
 
 function json(body: Record<string, unknown>, status: number) {
@@ -56,8 +58,10 @@ Deno.serve(async (request) => {
   const jobTitle = payload.jobTitle?.trim() ?? ''
   const workspaceId = payload.workspaceId
   const roleIds = [...new Set(payload.roleIds ?? [])]
+  const clientIds = [...new Set(payload.clientIds ?? [])]
+  const clientAccessRoleId = payload.clientAccessRoleId
 
-  if (!email || !/^\S+@\S+\.\S+$/.test(email) || !displayName || !workspaceId || roleIds.length === 0) {
+  if (!email || !/^\S+@\S+\.\S+$/.test(email) || !displayName || !workspaceId || roleIds.length === 0 || (clientIds.length > 0 && (!clientAccessRoleId || !roleIds.includes(clientAccessRoleId)))) {
     return json({ error: 'Email, display name, Workspace, and at least one role are required' }, 400)
   }
 
@@ -74,7 +78,7 @@ Deno.serve(async (request) => {
     return json({ error: inviteError?.message ?? 'Could not create invitation' }, 400)
   }
 
-  const { error: provisionError } = await adminClient.rpc('provision_invited_user', {
+  const { data: membershipId, error: provisionError } = await adminClient.rpc('provision_invited_user', {
     invited_user_id: invited.user.id,
     invited_email: email,
     invited_display_name: displayName,
@@ -84,11 +88,18 @@ Deno.serve(async (request) => {
     actor_user_id: userData.user.id,
   })
 
-  if (provisionError) {
+  if (provisionError || !membershipId) {
     return json({
       error: 'Invitation was created but Workspace provisioning needs administrator review',
-      detail: provisionError.message,
+      detail: provisionError?.message ?? 'Membership ID was not returned',
     }, 500)
+  }
+
+  if (clientIds.length > 0 && clientAccessRoleId) {
+    const { error: accessError } = await adminClient.from('client_members').insert(clientIds.map((clientId) => ({
+      client_id: clientId, workspace_member_id: membershipId, role_id: clientAccessRoleId, assigned_by: userData.user.id,
+    })))
+    if (accessError) return json({ error: 'Invitation and Workspace roles were created, but Client access needs administrator review', detail: accessError.message }, 500)
   }
 
   return json({ invited: true }, 201)

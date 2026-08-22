@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Archive, Building2, LoaderCircle, Pencil, Plus, Search, X } from 'lucide-react'
 import { Button, Card, FormField, Input, StatusBadge, Textarea } from '../components/ui'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/auth-context'
 import { useDevMountCounter } from '../lib/dev-diagnostics'
 import { archiveClient, loadClients, saveClient } from '../features/admin/admin-api'
@@ -12,6 +13,7 @@ const emptyForm = { name: '', code: '', industry: '', description: '', brandNote
 export function ClientsPage() {
   useDevMountCounter('ClientsPage')
   const { workspace } = useAuth()
+  const navigate = useNavigate()
   const [clients, setClients] = useState<ClientRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -125,7 +127,7 @@ export function ClientsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4 border-y border-line py-4 text-sm"><div><p className="text-xs font-bold uppercase tracking-wider text-ink-faint">Industry</p><p className="mt-1 font-semibold">{client.industry || 'Not set'}</p></div><div><p className="text-xs font-bold uppercase tracking-wider text-ink-faint">Updated</p><p className="mt-1 font-semibold">{new Date(client.updated_at).toLocaleDateString()}</p></div></div>
               <p className="line-clamp-2 min-h-12 text-sm leading-6 text-ink-muted">{client.description || 'No description yet.'}</p>
-              {canManage && client.status === 'active' ? <Button variant="secondary" onClick={() => openEditor(client)}><Pencil className="size-4" />Edit Client</Button> : null}
+              <div className="grid gap-2"><Button variant="secondary" onClick={()=>navigate('/editing-playbook',{state:{clientId:client.id,clientName:client.name}})}>剪辑规范 / Editing Playbook</Button>{canManage && client.status === 'active' ? <Button variant="secondary" onClick={() => openEditor(client)}><Pencil className="size-4" />Edit Client</Button> : null}</div>
             </Card>
           ))}
         </div>

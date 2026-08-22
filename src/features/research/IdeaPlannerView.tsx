@@ -32,11 +32,13 @@ function statusCell(idea: IdeaRecord) {
 export function IdeaPlannerView({
   ideas,
   catalog,
-  onSelect,
+  onSelect, selectedIds = [], onToggle,
 }: {
   ideas: IdeaRecord[]
   catalog: ResearchCatalog
   onSelect: (idea: IdeaRecord) => void
+  selectedIds?: string[]
+  onToggle?: (ideaId:string,checked:boolean)=>void
 }) {
   return (
     <>
@@ -44,12 +46,12 @@ export function IdeaPlannerView({
         <table className="w-full min-w-[72rem] border-collapse text-left">
           <thead className="border-b border-line bg-canvas-raised/80 text-[0.68rem] font-extrabold uppercase tracking-[0.13em] text-ink-faint">
             <tr>
-              <th className="w-36 px-4 py-3">Planned Date</th>
+              <th className="w-12 px-3 py-3"><span className="sr-only">Select</span></th><th className="w-12 px-3 py-3"><span className="sr-only">Select</span></th><th className="w-36 px-4 py-3">Planned Date</th>
               <th className="px-4 py-3">Idea Title</th>
               <th className="w-36 px-4 py-3">Category</th>
               <th className="w-60 px-4 py-3">Status</th>
               <th className="w-24 px-4 py-3">Priority</th>
-              <th className="w-40 px-4 py-3">Owner / Creator</th>
+              <th className="w-40 px-4 py-3">Owner</th>
               <th className="w-24 px-4 py-3 text-center">Sources</th>
               <th className="w-44 px-4 py-3">Next Action</th>
             </tr>
@@ -65,6 +67,8 @@ export function IdeaPlannerView({
                 }}
                 className="group cursor-pointer bg-paper transition hover:bg-canvas-raised focus:bg-canvas-raised focus:outline-none"
               >
+                <td className="px-3 py-3 align-top"><input type="checkbox" aria-label={`Select ${idea.title}`} checked={selectedIds.includes(idea.id)} disabled={idea.status==='converted'||idea.status==='archived'} onClick={event=>event.stopPropagation()} onChange={event=>onToggle?.(idea.id,event.target.checked)} className="size-4 accent-coral"/></td>
+                <td className="px-3 py-3 align-top"><input type="checkbox" aria-label={`Select ${idea.title}`} checked={selectedIds.includes(idea.id)} disabled={idea.status==='converted'||idea.status==='archived'} onClick={event=>event.stopPropagation()} onChange={event=>onToggle?.(idea.id,event.target.checked)} className="size-4 accent-coral"/></td>
                 <td className="px-4 py-3 align-top font-mono text-xs font-bold text-ink-soft">
                   {formatPlannedDate(idea.planned_date)}
                 </td>

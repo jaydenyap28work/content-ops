@@ -167,6 +167,8 @@ export async function inviteUser(payload: {
   jobTitle: string
   workspaceId: string
   roleIds: string[]
+  clientIds: string[]
+  clientAccessRoleId: string
 }) {
   const { data, error } = await supabase.functions.invoke('invite-user', { body: payload })
   if (error) throw new Error(error.message)

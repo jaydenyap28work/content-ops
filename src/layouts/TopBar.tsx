@@ -2,6 +2,7 @@ import { LogOut, Menu } from 'lucide-react'
 import { useCurrentRoute } from '../hooks/useCurrentRoute'
 import { StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
+import { LanguageSwitch, routeTranslationKeys, useI18n } from '../features/i18n/i18n'
 
 interface TopBarProps {
   onOpenNavigation: () => void
@@ -10,6 +11,7 @@ interface TopBarProps {
 export function TopBar({ onOpenNavigation }: TopBarProps) {
   const route = useCurrentRoute()
   const { session, workspace, signOut } = useAuth()
+  const { t } = useI18n()
 
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-xl">
@@ -25,9 +27,10 @@ export function TopBar({ onOpenNavigation }: TopBarProps) {
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-bold uppercase tracking-[0.18em] text-ink-muted">Content operations</p>
-          <h1 className="truncate font-display text-xl font-semibold text-ink sm:text-2xl">{route?.title ?? 'Page not found'}</h1>
+          <h1 className="truncate font-display text-xl font-semibold text-ink sm:text-2xl">{route ? t(routeTranslationKeys[route.path]) : 'Page not found'}</h1>
         </div>
 
+        <LanguageSwitch compact />
         <div className="hidden min-w-0 items-center gap-3 sm:flex">
           <div className="min-w-0 text-right">
             <p className="max-w-56 truncate text-xs font-bold text-ink">{session?.user.email}</p>

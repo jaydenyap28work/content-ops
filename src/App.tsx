@@ -13,10 +13,16 @@ import { ContentDetailPage } from './pages/ContentDetailPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { CalendarPage } from './pages/CalendarPage'
+import { ResourcePage } from './pages/ResourcePage'
+import { SettingsPage } from './pages/SettingsPage'
+import { I18nProvider } from './features/i18n/i18n'
 
 export default function App() {
   return (
-    <AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -27,7 +33,7 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : <PlaceholderPage route={route} />}
+                  element={route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : <PlaceholderPage route={route} />}
                 />
               ))}
               <Route path="content/:contentId" element={<ContentDetailPage />} />
@@ -37,5 +43,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </I18nProvider>
   )
 }

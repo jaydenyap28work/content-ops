@@ -126,3 +126,31 @@ Record each real task with:
 - **Status:** Resolved after verification.
 - `/ideas` now defaults to a dense Planner table on desktop and compact planning rows on mobile. Planned date, topic, Idea status, linked Content production status, priority, owner/creator, source count, and next action are visible without opening every record.
 - A lightweight Board remains available as a secondary view; Idea details open only when a row is selected.
+
+## Pilot UX Round 2 — Daily Workflow Redesign (2026-08-22)
+
+| Issue | Status | Verification / remaining scope |
+|---|---|---|
+| Idea Evaluating cannot undo | Resolved | M10 permits New ↔ Evaluating, Approved → Evaluating before conversion, and Rejected → Evaluating. Converted rollback is rejected; Idea Activity Log is retained. |
+| Approved Idea lacks shooting value | Resolved | Approved/Converted Idea detail now exposes a Shooting Brief with Why Now, Hook, interview questions, talking directions, CTA, format, duration, talent, shoot date/location/shooter and References. Notes remain under More details. |
+| Calendar empty despite planned dates | Resolved | Calendar is derived from Idea/Content plan dates, shoot schedule, and publication schedule/publish time. Production verification returned all seven LKSoft September plans; the converted record appears once as Content. |
+| Creator vs Owner unclear | Resolved | Planner uses Owner as the operating field; Creator remains immutable historical attribution in Idea detail. |
+| Owner cannot bulk assign | Resolved | Planner checkbox actions support Owner, Planned Date, Priority, Category and Tags. Status is intentionally excluded. Database RPC validates scope and writes Activity Log entries. |
+| Dashboard unclear | Resolved | Workbench now surfaces Today/This Week, review/revision/approval/publication/analytics attention, production overview and direct actions. Empty states explain the next step. |
+| References purpose unclear | Resolved | References is presented as Inspiration Library with Save Inspiration as the primary action, practical capture guidance, and retained Create Idea provenance. |
+| Analytics empty/unclear | Resolved | Empty state explains the publication prerequisite; published data uses a dense Facebook/XHS snapshot table with Client, platform and date filters. |
+| Assets unclear | Resolved for V0.1 | Empty state explains metadata indexing and that large files remain in Drive/NAS/Local. No upload feature was added. |
+| Music unclear | Resolved for V0.1 | Empty state explains BGM source/style/use-history intent and keeps the module low priority. |
+| Editing Playbook misplaced | Partially Resolved | Resources navigation is collapsible, Client detail links into a Client-context Playbook, and the eight required sections are visible. Persistent Playbook authoring remains deferred rather than inventing an unapproved schema. |
+| Settings empty | Resolved | Personal language/profile/timezone and Super Admin Workspace name/default timezone are functional; timezone defaults to Asia/Kuala_Lumpur. |
+| Login / invite flow unclear | Partially Resolved | Login is Google-first, invite-only, retains email/password and forgot-password, and denies unprovisioned accounts. Team invitation now collects Role, Client Access and an explicit Client access role; the Edge Function provisions these server-side. Google Provider OAuth Client ID/Secret still requires manual Supabase configuration. |
+| Navigation organized by modules instead of daily workflow | Resolved | Navigation is grouped as Daily Work, Results, Management, collapsible Resources, and Settings; routes and data were preserved. |
+| Chinese / English localization | Partially Resolved | zh-CN defaults and persists in localStorage; navigation, route names, status labels and the new daily-work surfaces have translation mapping without AppShell remount. Some established deep operational forms retain English labels and require a later translation-completeness pass. User-entered data is never translated. |
+
+### Round 2 Verification Evidence
+
+- Frontend: 7 test files / 13 tests passed; lint and production build passed.
+- Database: M04–M10 schema/RLS/workflow rollback suites all passed with no residue.
+- Calendar production check: seven LKSoft September 2026 PLAN entries returned on the expected dates; the converted 2026-09-02 Idea is represented by its linked Content only.
+- Access boundary: authenticated Super Admin can read the authorized Calendar; anon execution is denied at the function grant boundary.
+- Responsive contracts: desktop month Calendar, mobile Agenda, desktop Planner, compact mobile Idea rows, mobile drawer/navigation are implemented; final device usability remains a live Pilot observation item.

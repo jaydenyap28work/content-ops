@@ -6,7 +6,7 @@ import { useAuth } from './auth-context'
 const accessMessages = {
   profile_required: {
     title: 'Account setup is not complete',
-    body: 'Your sign-in is valid, but a ContentOS profile has not been provisioned yet. Ask a Super Admin to complete workspace access.',
+    body: '此账号尚未获得 Workspace 访问权限，请联系管理员。 Your sign-in is valid, but no invitation or profile has been provisioned.',
   },
   profile_deactivated: {
     title: 'Account deactivated',
@@ -14,7 +14,7 @@ const accessMessages = {
   },
   workspace_required: {
     title: 'No active workspace',
-    body: 'This account does not have an active ContentOS workspace membership.',
+    body: '此账号尚未获得 Workspace 访问权限，请联系管理员。',
   },
   membership_deactivated: {
     title: 'Workspace access deactivated',

@@ -9,7 +9,7 @@ import { cn } from '../../lib/cn'
 
 interface FormFieldProps {
   label: string
-  htmlFor: string
+  htmlFor?: string
   hint?: string
   error?: string
   required?: boolean
