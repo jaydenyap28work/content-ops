@@ -1,14 +1,16 @@
 import type { ContentRecord } from './content-api'
 
-export function productionBoardStage(content: Pick<ContentRecord, 'current_status' | 'publication_state'>) {
+export function productionBoardStage(content: Pick<ContentRecord, 'current_status' | 'publication_state' | 'shoot_scheduled_at'>) {
   if (content.publication_state === 'fully_published' && content.current_status === 'ready_for_publishing') return 'published'
+  if (content.current_status === 'draft' || content.current_status === 'ready_to_shoot') {
+    return content.shoot_scheduled_at ? 'scheduled_shoot' : 'awaiting_schedule'
+  }
   return content.current_status
 }
 
 export const productionBoardStages = [
-  'ready_to_shoot', 'shooting', 'shot_awaiting_edit', 'editing', 'first_cut_submitted',
-  'internal_review', 'revision_required', 'ready_for_publishing', 'published',
-  'analytics_tracking', 'completed',
+  'awaiting_schedule', 'scheduled_shoot', 'shooting', 'shot_awaiting_edit', 'editing', 'first_cut_submitted',
+  'internal_review', 'revision_required', 'ready_for_publishing', 'published', 'analytics_tracking', 'completed',
 ] as const
 
 const beforeEditing = new Set(['draft', 'ready_to_shoot', 'shooting', 'shot_awaiting_edit'])
@@ -37,10 +39,10 @@ export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'e
   const publishedPlatforms = [...new Set(publications.filter((item) => item.status === 'published').map((item) => item.platformCode.toUpperCase()).filter(Boolean))]
   const plannedPlatforms = [...new Set(publications.filter((item) => ['draft', 'scheduled'].includes(item.status)).map((item) => item.platformCode.toUpperCase()).filter(Boolean))]
 
-  let shooting = zh ? '未安排' : 'Not scheduled'
+  let shooting = zh ? '待安排拍摄' : 'Needs scheduling'
   if (status === 'shooting') shooting = zh ? '拍摄中' : 'Shooting'
   else if (afterShooting.has(status)) shooting = zh ? '✓ 已拍摄' : '✓ Shot'
-  else if (content.shoot_scheduled_at) shooting = dateTime(content.shoot_scheduled_at, language)
+  else if (content.shoot_scheduled_at) shooting = `${dateTime(content.shoot_scheduled_at, language)} · ${zh ? '已安排' : 'Scheduled'}`
 
   let editing = zh ? '待剪辑' : 'Awaiting edit'
   if (status === 'editing') editing = editor ? `${zh ? '剪辑中' : 'Editing'} · ${editor}` : (zh ? '剪辑中' : 'Editing')
@@ -59,12 +61,17 @@ export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'e
   else if (scheduledPublication) publishing = `${plannedPlatforms.join(' + ') || (zh ? '已排期' : 'Scheduled')} · ${dateTime(scheduledPublication.scheduledAt, language)}`
   else if (content.publication_state === 'partially_published') publishing = `${zh ? '部分已发布' : 'Partially published'} · ${publishedPlatforms.join(' + ')}`
 
-  const next: Record<string, [string, string]> = {
-    draft: ['安排拍摄', 'Schedule shoot'], ready_to_shoot: ['开始拍摄', 'Start shooting'], shooting: ['完成拍摄', 'Complete shooting'],
-    shot_awaiting_edit: ['等待剪辑', 'Await editing'], editing: ['提交初剪', 'Submit first cut'], first_cut_submitted: ['审核初剪', 'Review first cut'],
-    internal_review: ['完成审核', 'Complete review'], revision_required: ['修改内容', 'Revise content'], client_review: ['等待客户确认', 'Await client approval'],
-    approved: ['准备发布', 'Prepare publishing'], ready_for_publishing: ['准备发布', 'Prepare publishing'], analytics_tracking: ['查看数据', 'Review analytics'], completed: ['查看数据', 'Review analytics'],
+  let nextAction = zh ? '查看详情' : 'View details'
+  if (status === 'draft' || status === 'ready_to_shoot') nextAction = content.shoot_scheduled_at ? (zh ? '开始拍摄' : 'Start shooting') : (zh ? '安排拍摄' : 'Schedule shoot')
+  else {
+    const next: Record<string, [string, string]> = {
+      shooting: ['完成拍摄', 'Complete shooting'], shot_awaiting_edit: ['等待剪辑', 'Await editing'], editing: ['提交初剪', 'Submit first cut'],
+      first_cut_submitted: ['审核初剪', 'Review first cut'], internal_review: ['完成审核', 'Complete review'], revision_required: ['处理修改', 'Handle revision'],
+      client_review: ['等待客户确认', 'Await client approval'], approved: ['安排发布', 'Schedule publishing'], ready_for_publishing: ['安排发布', 'Schedule publishing'],
+      analytics_tracking: ['查看结果', 'View results'], completed: ['查看结果', 'View results'],
+    }
+    nextAction = next[status]?.[zh ? 0 : 1] ?? nextAction
   }
 
-  return { shooting, editing, review, publishing, nextAction: next[status]?.[zh ? 0 : 1] ?? (zh ? '查看详情' : 'View details') }
+  return { shooting, editing, review, publishing, nextAction }
 }

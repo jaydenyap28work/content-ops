@@ -5,8 +5,8 @@ export const ideaStatusLabels = {
 } as const
 export const planningStatusLabels: Record<PlanningStatus, { zh: string; en: string }> = {
   new: { zh: '新选题', en: 'New Idea' },
-  evaluating: { zh: '评估中', en: 'Evaluating' },
-  confirmed: { zh: '已确认拍摄', en: 'Confirmed to Shoot' },
+  evaluating: { zh: '待确认', en: 'Awaiting Decision' },
+  confirmed: { zh: '已确认', en: 'Confirmed' },
   paused: { zh: '暂缓', en: 'Paused' },
   rejected: { zh: '不采用', en: 'Not Selected' },
   archived: { zh: '已归档', en: 'Archived' },
@@ -14,7 +14,7 @@ export const planningStatusLabels: Record<PlanningStatus, { zh: string; en: stri
 
 export interface PlannerFilters {
   search: string
-  status: PlanningStatus | 'all'
+  status: PlanningStatus | 'decision' | 'all'
   clientId: string
   categoryId: string
   reference: 'all' | 'with' | 'without'
@@ -50,7 +50,8 @@ export function sortIdeasByPlannedDate(ideas: IdeaRecord[]) {
 export function filterPlannerIdeas(ideas: IdeaRecord[], filters: PlannerFilters) {
   const term = filters.search.trim().toLocaleLowerCase('en')
   return sortIdeasByPlannedDate(ideas.filter((idea) => {
-    if (filters.status !== 'all' && idea.planning_status !== filters.status) return false
+    if (filters.status === 'decision' && !['new','evaluating'].includes(idea.planning_status)) return false
+    if (filters.status !== 'all' && filters.status !== 'decision' && idea.planning_status !== filters.status) return false
     if (filters.clientId !== 'all' && idea.client_id !== filters.clientId) return false
     if (filters.categoryId !== 'all' && idea.category_id !== filters.categoryId) return false
     if (filters.reference === 'with' && idea.referenceIds.length === 0) return false
@@ -66,10 +67,10 @@ export function getDisplayedProductionStatus(idea: IdeaRecord, language: 'zh-CN'
 
 export function getNextActionLabel(idea: IdeaRecord, language: 'zh-CN' | 'en' = 'en') {
   const zh = language === 'zh-CN'
-  if (idea.status === 'converted') return idea.linked_content_id ? (zh ? '打开制作内容' : 'Open Content') : (zh ? '查找制作内容' : 'Find linked Content')
-  if (idea.planning_status === 'new') return zh ? '开始评估' : 'Start evaluation'
-  if (idea.planning_status === 'evaluating') return zh ? '确认拍摄' : 'Confirm to Shoot'
-  if (idea.planning_status === 'confirmed') return zh ? '转入制作' : 'Convert to Content'
+  if (idea.status === 'converted') return idea.linked_content_id ? (zh ? '打开制作内容' : 'Open Production Content') : (zh ? '查找制作内容' : 'Find Production Content')
+  if (idea.planning_status === 'new') return zh ? '交给老板确认' : 'Send for Decision'
+  if (idea.planning_status === 'evaluating') return zh ? '等待决定' : 'Await Decision'
+  if (idea.planning_status === 'confirmed') return zh ? '进入制作中心' : 'Open Production Center'
   return zh ? '查看详情' : 'Review details'
 }
 

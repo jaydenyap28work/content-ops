@@ -17,6 +17,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { ResourcePage } from './pages/ResourcePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { BrandHubPage } from './pages/BrandHubPage'
 import { I18nProvider } from './features/i18n/i18n'
 
 export default function App() {
@@ -33,7 +34,7 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : <PlaceholderPage route={route} />}
+                  element={route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : <PlaceholderPage route={route} />}
                 />
               ))}
               <Route path="content/:contentId" element={<ContentDetailPage />} />

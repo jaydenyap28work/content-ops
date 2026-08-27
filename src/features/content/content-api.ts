@@ -252,6 +252,13 @@ export async function saveContent(workspaceId: string, values: ContentFormValues
   return data as string
 }
 
+export async function confirmIdeaForProduction(ideaId: string) {
+  const { data, error } = await supabase.rpc('confirm_idea_for_production', { target_idea_id: ideaId })
+  fail(error)
+  const result = (data ?? [])[0] as { content_id: string; content_code: string; created_new: boolean } | undefined
+  if (!result) throw new Error('Production Content was not returned')
+  return result
+}
 export async function convertIdeaToContent(ideaId: string, values: {
   title: string
   workingTitle: string

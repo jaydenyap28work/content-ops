@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 
-export type NavigationSection = 'Daily Work' | 'Results' | 'Management' | 'Resources' | 'Settings'
+export type NavigationSection = 'Daily Work' | 'Brand' | 'Results' | 'Management' | 'Resources' | 'Settings'
 
 export interface AppRouteDefinition {
   path: string

@@ -3,9 +3,11 @@ import { productionBoardStage, productionTracker } from './production-model'
 import type { ContentRecord } from './content-api'
 
 describe('production board and tracker', () => {
-  it('keeps workflow and publication state separate while showing published work', () => {
-    expect(productionBoardStage({ current_status: 'editing', publication_state: 'not_published' })).toBe('editing')
-    expect(productionBoardStage({ current_status: 'ready_for_publishing', publication_state: 'fully_published' })).toBe('published')
+  it('places unscheduled and scheduled confirmed Content into visible board stages', () => {
+    expect(productionBoardStage({ current_status: 'draft', publication_state: 'not_published', shoot_scheduled_at: null })).toBe('awaiting_schedule')
+    expect(productionBoardStage({ current_status: 'ready_to_shoot', publication_state: 'not_published', shoot_scheduled_at: '2026-08-31T06:00:00Z' })).toBe('scheduled_shoot')
+    expect(productionBoardStage({ current_status: 'editing', publication_state: 'not_published', shoot_scheduled_at: null })).toBe('editing')
+    expect(productionBoardStage({ current_status: 'ready_for_publishing', publication_state: 'fully_published', shoot_scheduled_at: null })).toBe('published')
   })
 
   it('derives human-readable production steps without database tokens', () => {
@@ -20,6 +22,16 @@ describe('production board and tracker', () => {
     expect(tracker.review).toBe('—')
     expect(tracker.nextAction).toBe('提交初剪')
     expect(Object.values(tracker).join(' ')).not.toMatch(/not_started|draft|converted/)
+  })
+
+  it('distinguishes scheduling from starting a scheduled shoot', () => {
+    const base = { current_status: 'draft', publication_state: 'not_published', contributors: [], publications: [] }
+    const unscheduled = productionTracker({ ...base, shoot_scheduled_at: null } as unknown as ContentRecord, 'zh-CN')
+    expect(unscheduled.shooting).toBe('待安排拍摄')
+    expect(unscheduled.nextAction).toBe('安排拍摄')
+    const scheduled = productionTracker({ ...base, shoot_scheduled_at: '2026-08-31T06:00:00Z' } as unknown as ContentRecord, 'zh-CN')
+    expect(scheduled.shooting).toContain('已安排')
+    expect(scheduled.nextAction).toBe('开始拍摄')
   })
 
   it('shows scheduled platforms and fully published state independently', () => {
