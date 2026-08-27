@@ -13,6 +13,7 @@ interface InvitePayload {
   roleIds?: string[]
   clientIds?: string[]
   clientAccessRoleId?: string
+  teamMemberId?: string
 }
 
 function json(body: Record<string, unknown>, status: number) {
@@ -60,6 +61,7 @@ Deno.serve(async (request) => {
   const roleIds = [...new Set(payload.roleIds ?? [])]
   const clientIds = [...new Set(payload.clientIds ?? [])]
   const clientAccessRoleId = payload.clientAccessRoleId
+  const teamMemberId = payload.teamMemberId
 
   if (!email || !/^\S+@\S+\.\S+$/.test(email) || !displayName || !workspaceId || roleIds.length === 0 || (clientIds.length > 0 && (!clientAccessRoleId || !roleIds.includes(clientAccessRoleId)))) {
     return json({ error: 'Email, display name, Workspace, and at least one role are required' }, 400)
@@ -95,6 +97,12 @@ Deno.serve(async (request) => {
     }, 500)
   }
 
+  if (teamMemberId) {
+    const { error: linkError } = await adminClient.rpc('link_invited_team_member', {
+      target_team_member_id: teamMemberId, target_auth_user_id: invited.user.id, target_email: email,
+    })
+    if (linkError) return json({ error: 'Invitation and Workspace access were created, but Team Member linking needs administrator review', detail: linkError.message }, 500)
+  }
   if (clientIds.length > 0 && clientAccessRoleId) {
     const { error: accessError } = await adminClient.from('client_members').insert(clientIds.map((clientId) => ({
       client_id: clientId, workspace_member_id: membershipId, role_id: clientAccessRoleId, assigned_by: userData.user.id,

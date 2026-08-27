@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { ContentStatus } from './content-api'
-import type { ContributionRoleRecord, ContributorOption } from '../research/research-api'
+import type { ContributionRoleRecord } from '../research/research-api'
 
 export type WorkflowAction =
   | 'mark_ready_to_shoot'
@@ -17,7 +17,8 @@ export interface ProductionDates {
 
 export interface ContentContributorRecord {
   id: string
-  user_profile_id: string
+  user_profile_id: string | null
+  team_member_id: string
   display_name: string
   contribution_role_id: string
   contribution_role_code: string
@@ -85,21 +86,14 @@ export async function loadWorkflowBundle(contentId: string): Promise<WorkflowBun
   }
 }
 
+export interface ProductionTeamMember { id:string; name:string; job_title:string|null; email:string|null; auth_user_id:string|null; login_status:'not_enabled'|'invited'|'enabled'; status:'active'|'inactive' }
 export async function loadWorkflowAssignmentCatalog(workspaceId: string, clientId: string) {
   const [people, roles] = await Promise.all([
-    supabase.rpc('list_research_contributors', { target_client_id: clientId }),
-    supabase
-      .from('contribution_roles')
-      .select('id, code, name')
-      .eq('workspace_id', workspaceId)
-      .eq('is_active', true)
-      .order('sort_order'),
+    supabase.rpc('list_production_team_members', { target_workspace_id: workspaceId, target_client_id: clientId }),
+    supabase.from('contribution_roles').select('id, code, name').eq('workspace_id', workspaceId).eq('is_active', true).in('code',['owner','talent','director','shooter','editor','reviewer','publisher']).order('sort_order'),
   ])
   fail(people.error); fail(roles.error)
-  return {
-    people: (people.data ?? []) as ContributorOption[],
-    roles: (roles.data ?? []) as ContributionRoleRecord[],
-  }
+  return { people: (people.data ?? []) as ProductionTeamMember[], roles: (roles.data ?? []) as ContributionRoleRecord[] }
 }
 
 export async function performWorkflowAction(
@@ -128,17 +122,10 @@ export async function setShootSchedule(contentId: string, scheduledAt: string | 
   fail(error)
 }
 
-export async function assignContentContributor(values: {
-  contentId: string
-  userId: string
-  contributionRoleId: string
-  notes: string
-}) {
-  const { data, error } = await supabase.rpc('assign_content_contributor', {
-    target_content_id: values.contentId,
-    target_user_id: values.userId,
-    target_contribution_role_id: values.contributionRoleId,
-    target_notes: values.notes,
+export async function assignContentTeamMember(values: { contentId:string; teamMemberId:string; roleCode:string; notes:string }) {
+  const { data, error } = await supabase.rpc('assign_content_team_member', {
+    target_content_id: values.contentId, target_team_member_id: values.teamMemberId,
+    target_role_code: values.roleCode, target_notes: values.notes,
   })
   fail(error)
   return data as string
@@ -158,9 +145,10 @@ export async function bulkUpdateProductionItems(contentIds: string[], field: 'ow
   return data as number
 }
 
-export async function bulkAssignContentContributor(contentIds: string[], userId: string, roleCode: 'shooter' | 'editor' | 'reviewer' | 'publisher') {
-  const { data, error } = await supabase.rpc('bulk_assign_content_contributor', {
-    target_content_ids: contentIds, target_user_id: userId, target_role_code: roleCode,
+export type ProductionRoleCode = 'owner'|'talent'|'director'|'shooter'|'editor'|'reviewer'|'publisher'
+export async function bulkAssignContentTeamMember(contentIds:string[], teamMemberId:string, roleCode:ProductionRoleCode) {
+  const { data, error } = await supabase.rpc('bulk_assign_content_team_member', {
+    target_content_ids: contentIds, target_team_member_id: teamMemberId, target_role_code: roleCode,
   })
   fail(error)
   return data as number

@@ -48,6 +48,7 @@ export interface ContentRecord {
   current_status: ContentStatus
   publication_state: 'not_published' | 'partially_published' | 'fully_published' | 'needs_attention'
   current_owner_user_id: string | null
+  owner_team_member_id: string | null
   current_owner_name: string | null
   internal_notes: string | null
   private_management_notes: string | null
@@ -143,21 +144,23 @@ export async function loadContents(workspaceId: string, contentId?: string) {
   if (ids.length === 0) return []
   const [tagLinks, contributors, publications] = await Promise.all([
     supabase.from('content_tags').select('content_id, tag_id').in('content_id', ids),
-    supabase.from('content_contributors').select('content_id, user_profile_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
+    supabase.from('content_contributors').select('content_id, user_profile_id, team_member_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
     supabase.from('publications').select('content_id, platform_id, is_required, status, scheduled_at, published_at').in('content_id', ids),
   ])
   fail(tagLinks.error); fail(contributors.error); fail(publications.error)
   const tagIds = [...new Set((tagLinks.data ?? []).map((row) => row.tag_id as string))]
-  const contributorUserIds = [...new Set((contributors.data ?? []).map((row) => row.user_profile_id as string))]
+  const contributorTeamIds = [...new Set((contributors.data ?? []).map((row) => row.team_member_id as string).filter(Boolean))]
+  const ownerTeamIds = [...new Set(rows.map((row) => row.owner_team_member_id as string).filter(Boolean))]
   const contributorRoleIds = [...new Set((contributors.data ?? []).map((row) => row.contribution_role_id as string))]
   const platformIds = [...new Set((publications.data ?? []).map((row) => row.platform_id as string))]
-  const [tags, contributorUsers, contributorRoles, platforms] = await Promise.all([
+  const [tags, contributorTeams, ownerTeams, contributorRoles, platforms] = await Promise.all([
     tagIds.length ? supabase.from('tags').select('id, name').in('id', tagIds) : Promise.resolve({ data: [], error: null }),
-    contributorUserIds.length ? supabase.from('user_profiles').select('id, display_name').in('id', contributorUserIds) : Promise.resolve({ data: [], error: null }),
+    contributorTeamIds.length ? supabase.from('team_members').select('id, name').in('id', contributorTeamIds) : Promise.resolve({ data: [], error: null }),
+    ownerTeamIds.length ? supabase.from('team_members').select('id, name').in('id', ownerTeamIds) : Promise.resolve({ data: [], error: null }),
     contributorRoleIds.length ? supabase.from('contribution_roles').select('id, code, name').in('id', contributorRoleIds) : Promise.resolve({ data: [], error: null }),
     platformIds.length ? supabase.from('platforms').select('id, code').in('id', platformIds) : Promise.resolve({ data: [], error: null }),
   ])
-  fail(tags.error); fail(contributorUsers.error); fail(contributorRoles.error); fail(platforms.error)
+  fail(tags.error); fail(contributorTeams.error); fail(ownerTeams.error); fail(contributorRoles.error); fail(platforms.error)
   return rows.map((row) => {
     const publicationRows = (publications.data ?? []).filter((item) => item.content_id === row.id)
     const required = publicationRows.filter((item) => item.is_required)
@@ -167,6 +170,7 @@ export async function loadContents(workspaceId: string, contentId?: string) {
     return ({
     ...row,
     publication_state,
+    current_owner_name: (ownerTeams.data ?? []).find((member) => member.id === row.owner_team_member_id)?.name as string ?? row.current_owner_name,
     tags: (tagLinks.data ?? [])
       .filter((item) => item.content_id === row.id)
       .map((item) => (tags.data ?? []).find((tag) => tag.id === item.tag_id)?.name as string)
@@ -174,10 +178,10 @@ export async function loadContents(workspaceId: string, contentId?: string) {
     contributors: (contributors.data ?? [])
       .filter((item) => item.content_id === row.id)
       .map((item) => ({
-        userId: item.user_profile_id as string,
+        userId: item.team_member_id as string,
         roleId: item.contribution_role_id as string,
         notes: item.notes as string | null,
-        displayName: (contributorUsers.data ?? []).find((user) => user.id === item.user_profile_id)?.display_name as string ?? '',
+        displayName: (contributorTeams.data ?? []).find((member) => member.id === item.team_member_id)?.name as string ?? '',
         roleCode: (contributorRoles.data ?? []).find((role) => role.id === item.contribution_role_id)?.code as string ?? '',
         roleName: (contributorRoles.data ?? []).find((role) => role.id === item.contribution_role_id)?.name as string ?? '',
       })),

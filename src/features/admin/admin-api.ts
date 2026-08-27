@@ -176,3 +176,37 @@ export async function inviteUser(payload: {
   if (error) throw new Error(error.message)
   if (data?.error) throw new Error(data.error as string)
 }
+
+export interface ProductionTeamMemberRecord {
+  id:string
+  name:string
+  job_title:string|null
+  email:string|null
+  auth_user_id:string|null
+  login_status:'not_enabled'|'invited'|'enabled'
+  status:'active'|'inactive'
+  created_at:string
+  updated_at:string
+}
+export async function loadProductionTeam(workspaceId:string){
+  const{data,error}=await supabase.rpc('list_team_members',{target_workspace_id:workspaceId})
+  throwIfError(error)
+  return(data??[]) as ProductionTeamMemberRecord[]
+}
+export async function createProductionTeamMember(workspaceId:string,name:string,jobTitle:string){
+  const{data,error}=await supabase.rpc('create_team_member',{target_workspace_id:workspaceId,target_name:name,target_job_title:jobTitle})
+  throwIfError(error);return data as string
+}
+export async function updateProductionTeamMember(id:string,name:string,jobTitle:string,active:boolean){
+  const{error}=await supabase.rpc('update_team_member',{target_team_member_id:id,target_name:name,target_job_title:jobTitle,target_active:active})
+  throwIfError(error)
+}
+export async function prepareTeamMemberInvite(id:string,email:string){
+  const{error}=await supabase.rpc('prepare_team_member_invite',{target_team_member_id:id,target_email:email})
+  throwIfError(error)
+}
+export async function inviteExistingTeamMember(payload:{teamMemberId:string;email:string;displayName:string;jobTitle:string;workspaceId:string;roleIds:string[];clientIds:string[];clientAccessRoleId:string}){
+  const{data,error}=await supabase.functions.invoke('invite-user',{body:payload})
+  if(error)throw new Error(error.message)
+  if(data?.error)throw new Error(data.error as string)
+}

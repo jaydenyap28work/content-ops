@@ -16,7 +16,7 @@ import {
 import { Button, Card, FormField, Input, Select, StatusBadge, Textarea } from '../../components/ui'
 import type { ContentRecord } from './content-api'
 import {
-  assignContentContributor,
+  assignContentTeamMember,
   loadWorkflowAssignmentCatalog,
   performWorkflowAction,
   removeContentContributor,
@@ -28,8 +28,9 @@ import type {
   WorkflowAction,
   WorkflowBundle,
   WorkflowEventRecord,
+  ProductionTeamMember,
 } from './workflow-api'
-import type { ContributionRoleRecord, ContributorOption } from '../research/research-api'
+import type { ContributionRoleRecord } from '../research/research-api'
 import { useI18n } from '../i18n/i18n'
 import { enumLabel, formatWorkspaceDate } from '../i18n/labels'
 
@@ -140,7 +141,7 @@ export function ProductionWorkspace({
   const {language}=useI18n(); const zh=language==='zh-CN'
   const [note, setNote] = useState('')
   const [schedule, setSchedule] = useState(() => toLocalInput(bundle.production.shoot_scheduled_at))
-  const [people, setPeople] = useState<ContributorOption[]>([])
+  const [people, setPeople] = useState<ProductionTeamMember[]>([])
   const [roles, setRoles] = useState<ContributionRoleRecord[]>([])
   const [selectedUser, setSelectedUser] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
@@ -155,7 +156,7 @@ export function ProductionWorkspace({
       .then((catalog) => {
         if (!active) return
         setPeople(catalog.people); setRoles(catalog.roles)
-        setSelectedUser((current) => current || catalog.people[0]?.user_profile_id || '')
+        setSelectedUser((current) => current || catalog.people[0]?.id || '')
         setSelectedRole((current) => current || catalog.roles[0]?.id || '')
       })
       .catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : 'Could not load assignment options') })
@@ -207,7 +208,9 @@ export function ProductionWorkspace({
     if (!selectedUser || !selectedRole) return
     setBusy('assign'); setError(null)
     try {
-      await assignContentContributor({ contentId: content.id, userId: selectedUser, contributionRoleId: selectedRole, notes: contributorNotes })
+      const role = roles.find((item) => item.id === selectedRole)
+      if (!role) throw new Error('Contribution role is unavailable')
+      await assignContentTeamMember({ contentId: content.id, teamMemberId: selectedUser, roleCode: role.code, notes: contributorNotes })
       setContributorNotes(''); await onChanged()
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not assign contributor') }
     finally { setBusy(null) }
@@ -248,7 +251,7 @@ export function ProductionWorkspace({
           <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><UserRoundCheck className="size-4 text-gold" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'协作人员':'Contributors'}</p></div><StatusBadge>{activeContributors.length} active</StatusBadge></div>
           <div className="mt-5 space-y-3">{activeContributors.length ? activeContributors.map((contributor) => <div key={contributor.id} className="flex items-start justify-between gap-3 rounded-md border border-line p-3"><div><p className="font-bold">{contributor.display_name}</p><p className="mt-1 text-xs text-ink-muted">{contributor.contribution_role_name}{contributor.notes ? ` · ${contributor.notes}` : ''}</p></div>{canManage ? <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void remove(contributor)}><UserRoundX className="size-3.5" />{zh?'移除':'Remove'}</Button> : null}</div>) : <p className="rounded-md border border-dashed border-line-strong p-4 text-sm text-ink-muted">{zh?'还没有分配协作人员。':'No active contributor assignments.'}</p>}</div>
           {historicalContributors.length ? <details className="mt-4 border-t border-line pt-4"><summary className="cursor-pointer text-xs font-bold text-ink-muted">Removed history · {historicalContributors.length}</summary><div className="mt-3 space-y-2">{historicalContributors.map((item) => <p key={item.id} className="text-xs text-ink-muted">{item.display_name} · {item.contribution_role_name} · removed {formatDate(item.removed_at)}</p>)}</div></details> : null}
-          {canManage ? <form className="mt-5 grid gap-3 border-t border-line pt-5" onSubmit={assign}><div className="grid gap-3 sm:grid-cols-2"><FormField label={zh?'人员':'Person'} htmlFor="contributor-person"><Select id="contributor-person" value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>{people.map((person) => <option key={person.user_profile_id} value={person.user_profile_id}>{person.display_name}</option>)}</Select></FormField><FormField label={zh?'协作角色':'Contribution role'} htmlFor="contributor-role"><Select id="contributor-role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></FormField></div><Input aria-label="Contributor notes" placeholder={zh?'分配说明（选填）':'Optional assignment context'} value={contributorNotes} onChange={(event) => setContributorNotes(event.target.value)} /><Button className="justify-self-start" type="submit" disabled={busy !== null || !selectedUser || !selectedRole}>{busy === 'assign' ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />}Assign contributor</Button></form> : null}
+          {canManage ? <form className="mt-5 grid gap-3 border-t border-line pt-5" onSubmit={assign}><div className="grid gap-3 sm:grid-cols-2"><FormField label={zh?'人员':'Person'} htmlFor="contributor-person"><Select id="contributor-person" value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>{people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</Select></FormField><FormField label={zh?'协作角色':'Contribution role'} htmlFor="contributor-role"><Select id="contributor-role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></FormField></div><Input aria-label="Contributor notes" placeholder={zh?'分配说明（选填）':'Optional assignment context'} value={contributorNotes} onChange={(event) => setContributorNotes(event.target.value)} /><Button className="justify-self-start" type="submit" disabled={busy !== null || !selectedUser || !selectedRole}>{busy === 'assign' ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />}Assign contributor</Button></form> : null}
         </Card>
       </div>
 

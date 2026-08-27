@@ -1,132 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { LoaderCircle, MailPlus, Search, ShieldAlert, UserRoundCheck, Users, X } from 'lucide-react'
+import { Link2, LoaderCircle, Plus, Search, ShieldAlert, UserRoundCheck, Users, X } from 'lucide-react'
 import { Button, Card, FormField, Input, Select, StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
-import {
-  inviteUser, loadClients, loadRoles, loadTeam, setClientAccess,
-  setMemberActive, setMemberRoles, updateMemberProfile,
-} from '../features/admin/admin-api'
-import type { ClientRecord, RoleRecord, TeamMemberRecord } from '../features/admin/admin-api'
+import { createProductionTeamMember, inviteExistingTeamMember, loadClients, loadProductionTeam, loadRoles, prepareTeamMemberInvite, updateProductionTeamMember } from '../features/admin/admin-api'
+import type { ClientRecord, ProductionTeamMemberRecord, RoleRecord } from '../features/admin/admin-api'
+import { useI18n } from '../features/i18n/i18n'
 
-export function TeamPage() {
-  const { workspace, session } = useAuth()
-  const [members, setMembers] = useState<TeamMemberRecord[]>([])
-  const [roles, setRoles] = useState<RoleRecord[]>([])
-  const [clients, setClients] = useState<ClientRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [invite, setInvite] = useState({ email: '', displayName: '', jobTitle: '', roleIds: [] as string[], clientIds: [] as string[], clientAccessRoleId: '' })
-  const [profile, setProfile] = useState({ displayName: '', jobTitle: '' })
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([])
-  const [accessDraft, setAccessDraft] = useState({ clientId: '', roleId: '' })
-
-  const isSuperAdmin = workspace?.roles.includes('Super Admin') ?? false
-  const selected = members.find((member) => member.membershipId === selectedId) ?? null
-
-  const refresh = useCallback(async () => {
-    if (!workspace || !isSuperAdmin) return
-    setLoading(true)
-    setError(null)
-    try {
-      const [nextMembers, nextRoles, nextClients] = await Promise.all([
-        loadTeam(workspace.id), loadRoles(workspace.id), loadClients(workspace.id),
-      ])
-      setMembers(nextMembers)
-      setRoles(nextRoles)
-      setClients(nextClients.filter((client) => client.status === 'active'))
-    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not load Team') }
-    finally { setLoading(false) }
-  }, [isSuperAdmin, workspace])
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void refresh(), 0)
-    return () => window.clearTimeout(timer)
-  }, [refresh])
-
-  function selectMember(member: TeamMemberRecord) {
-    setSelectedId(member.membershipId)
-    setProfile({ displayName: member.displayName, jobTitle: member.jobTitle ?? '' })
-    setSelectedRoleIds(member.roleIds)
-    setAccessDraft({ clientId: '', roleId: '' })
-  }
-
-  const visibleMembers = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    return members.filter((member) => !term || [member.displayName, member.email, member.jobTitle ?? ''].some((value) => value.toLowerCase().includes(term)))
-  }, [members, search])
-
-  if (!isSuperAdmin) {
-    return <Card className="mx-auto mt-12 max-w-2xl text-center"><ShieldAlert className="mx-auto size-9 text-coral" /><h2 className="mt-4 font-display text-3xl font-semibold">Super Admin access required</h2><p className="mt-3 leading-7 text-ink-muted">Team, role, and Client access management is restricted by both the interface and database policies.</p></Card>
-  }
-
-  async function runAction(action: () => Promise<void>, success: string) {
-    setBusy(true); setError(null); setNotice(null)
-    try { await action(); setNotice(success); await refresh() }
-    catch (caught) { setError(caught instanceof Error ? caught.message : 'Action failed') }
-    finally { setBusy(false) }
-  }
-
-  async function handleInvite(event: FormEvent) {
-    event.preventDefault()
-    if (!workspace) return
-    await runAction(() => inviteUser({ ...invite, workspaceId: workspace.id }), 'Invitation sent and Team access provisioned.')
-    setInviteOpen(false)
-    setInvite({ email: '', displayName: '', jobTitle: '', roleIds: [], clientIds: [], clientAccessRoleId: '' })
-  }
-
-  const activeAccess = selected?.clientAccess.filter((access) => access.status === 'active') ?? []
-
-  return (
-    <div className="page-enter space-y-6">
-      <header className="flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">Administration / Team</p><h2 className="mt-2 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">Access with a clear owner.</h2><p className="mt-3 max-w-2xl leading-7 text-ink-soft">Invite people, assign predefined roles, and keep Client access deliberately scoped.</p></div>
-        <Button onClick={() => setInviteOpen(true)}><MailPlus className="size-4" />Invite user</Button>
-      </header>
-
-      {error ? <div role="alert" className="rounded-lg border border-coral/30 bg-coral/8 px-4 py-3 text-sm text-coral-dark">{error}</div> : null}
-      {notice ? <div className="rounded-lg border border-green/25 bg-green/8 px-4 py-3 text-sm text-green">{notice}</div> : null}
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-line p-4"><label className="relative block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Team" className="pl-10" /></label></div>
-          {loading ? <div className="grid min-h-64 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></div> : visibleMembers.length === 0 ? <div className="grid min-h-64 place-items-center text-center"><div><Users className="mx-auto size-8 text-ink-faint" /><p className="mt-3 font-semibold">No matching Team members</p></div></div> : (
-            <div className="divide-y divide-line">
-              {visibleMembers.map((member) => (
-                <button key={member.membershipId} type="button" onClick={() => selectMember(member)} className="grid w-full gap-3 px-5 py-4 text-left transition hover:bg-canvas-raised sm:grid-cols-[1fr_auto]">
-                  <div className="min-w-0"><div className="flex items-center gap-2"><p className="truncate font-bold">{member.displayName}</p>{member.userId === session?.user.id ? <StatusBadge tone="info">You</StatusBadge> : null}</div><p className="mt-1 truncate text-sm text-ink-muted">{member.email}</p><p className="mt-2 text-xs font-semibold text-ink-faint">{member.roleIds.map((id) => roles.find((role) => role.id === id)?.name).filter(Boolean).join(' · ') || 'No role'}</p></div>
-                  <div className="flex items-center gap-2 sm:justify-end"><StatusBadge tone={member.status === 'active' ? 'success' : 'critical'}>{member.status}</StatusBadge><span className="text-xs font-bold text-ink-faint">{member.clientAccess.filter((a) => a.status === 'active').length} Clients</span></div>
-                </button>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card tone={selected ? 'default' : 'quiet'} className="h-fit xl:sticky xl:top-28">
-          {!selected ? <div className="py-12 text-center"><UserRoundCheck className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">Select a Team member</h3><p className="mt-2 text-sm leading-6 text-ink-muted">Profile, role, status, and Client access controls appear here.</p></div> : (
-            <div className="space-y-7">
-              <div><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-coral">Member access</p><h3 className="mt-1 font-display text-3xl font-semibold">{selected.displayName}</h3><p className="mt-1 text-sm text-ink-muted">{selected.email}</p></div>
-
-              <section className="space-y-4 border-t border-line pt-5"><h4 className="text-sm font-extrabold uppercase tracking-[0.14em]">Profile</h4><FormField label="Display name" htmlFor="member-name"><Input id="member-name" value={profile.displayName} onChange={(e) => setProfile({ ...profile, displayName: e.target.value })} /></FormField><FormField label="Job title" htmlFor="member-title"><Input id="member-title" value={profile.jobTitle} onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })} /></FormField><Button size="sm" variant="secondary" disabled={busy} onClick={() => void runAction(() => updateMemberProfile(selected.membershipId, profile.displayName, profile.jobTitle), 'Profile updated.')}>Save profile</Button></section>
-
-              <section className="space-y-3 border-t border-line pt-5"><h4 className="text-sm font-extrabold uppercase tracking-[0.14em]">Predefined roles</h4>{roles.map((role) => <label key={role.id} className="flex items-start gap-3 rounded-md border border-line p-3 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-coral" checked={selectedRoleIds.includes(role.id)} onChange={(e) => setSelectedRoleIds(e.target.checked ? [...selectedRoleIds, role.id] : selectedRoleIds.filter((id) => id !== role.id))} /><span><span className="font-bold">{role.name}</span><span className="mt-0.5 block text-xs text-ink-faint">{role.code}</span></span></label>)}<Button size="sm" variant="secondary" disabled={busy || selectedRoleIds.length === 0} onClick={() => void runAction(() => setMemberRoles(selected.membershipId, selectedRoleIds), 'Roles updated.')}>Save roles</Button></section>
-
-              <section className="space-y-3 border-t border-line pt-5"><h4 className="text-sm font-extrabold uppercase tracking-[0.14em]">Client access</h4>{activeAccess.length === 0 ? <p className="text-sm text-ink-muted">No active Client access.</p> : activeAccess.map((access) => <div key={`${access.clientId}-${access.roleId}`} className="flex items-center justify-between gap-3 rounded-md border border-line p-3"><div className="min-w-0"><p className="truncate text-sm font-bold">{clients.find((client) => client.id === access.clientId)?.name ?? 'Client'}</p><p className="text-xs text-ink-faint">{roles.find((role) => role.id === access.roleId)?.name ?? 'Role'}</p></div><Button size="sm" variant="ghost" disabled={busy} onClick={() => void runAction(() => setClientAccess(access.clientId, selected.membershipId, access.roleId, false), 'Client access removed.')}>Remove</Button></div>)}
-                <div className="grid gap-2"><Select aria-label="Client" value={accessDraft.clientId} onChange={(e) => setAccessDraft({ ...accessDraft, clientId: e.target.value })}><option value="">Choose Client</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select><Select aria-label="Access role" value={accessDraft.roleId} onChange={(e) => setAccessDraft({ ...accessDraft, roleId: e.target.value })}><option value="">Choose access role</option>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select><Button size="sm" variant="secondary" disabled={busy || !accessDraft.clientId || !accessDraft.roleId} onClick={() => void runAction(() => setClientAccess(accessDraft.clientId, selected.membershipId, accessDraft.roleId, true), 'Client access assigned.')}>Assign access</Button></div>
-              </section>
-
-              <section className="border-t border-line pt-5"><div className="flex items-center justify-between gap-3"><div><h4 className="text-sm font-extrabold uppercase tracking-[0.14em]">Account status</h4><p className="mt-1 text-xs text-ink-muted">Deactivation preserves records and revokes Client access.</p></div><Button size="sm" variant={selected.status === 'active' ? 'danger' : 'primary'} disabled={busy || selected.userId === session?.user.id} onClick={() => void runAction(() => setMemberActive(selected.membershipId, selected.status !== 'active'), selected.status === 'active' ? 'Member deactivated.' : 'Member activated.')}>{selected.status === 'active' ? 'Deactivate' : 'Activate'}</Button></div></section>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {inviteOpen ? <div className="fixed inset-0 z-50 flex justify-end bg-ink/45 backdrop-blur-sm"><section className="h-full w-full max-w-lg overflow-y-auto bg-paper p-6 shadow-2xl sm:p-8"><div className="flex justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.2em] text-coral">Secure invitation</p><h3 className="mt-2 font-display text-3xl font-semibold">Invite Team member</h3></div><Button variant="ghost" size="icon" onClick={() => setInviteOpen(false)}><X className="size-5" /></Button></div><p className="mt-4 text-sm leading-6 text-ink-muted">Invite-only：对方必须使用相同 Email 登录（Google 或 Email/Password）。用户不能自行选择 Role，public registration 保持关闭。</p><form className="mt-7 space-y-5" onSubmit={handleInvite}><FormField label="Work email" htmlFor="invite-email" required><Input id="invite-email" type="email" required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} /></FormField><FormField label="Display name" htmlFor="invite-name" required><Input id="invite-name" required value={invite.displayName} onChange={(e) => setInvite({ ...invite, displayName: e.target.value })} /></FormField><FormField label="Job title" htmlFor="invite-title"><Input id="invite-title" value={invite.jobTitle} onChange={(e) => setInvite({ ...invite, jobTitle: e.target.value })} /></FormField><fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Initial roles <span className="text-coral">*</span></legend>{roles.map((role) => <label key={role.id} className="flex gap-3 rounded-md border border-line p-3 text-sm font-bold"><input type="checkbox" className="size-4 accent-coral" checked={invite.roleIds.includes(role.id)} onChange={(e) => setInvite({ ...invite, roleIds: e.target.checked ? [...invite.roleIds, role.id] : invite.roleIds.filter((id) => id !== role.id) })} />{role.name}</label>)}</fieldset><fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Initial Client access</legend>{clients.map(client=><label key={client.id} className="flex gap-3 rounded-md border border-line p-3 text-sm font-bold"><input type="checkbox" checked={invite.clientIds.includes(client.id)} onChange={e=>setInvite({...invite,clientIds:e.target.checked?[...invite.clientIds,client.id]:invite.clientIds.filter(id=>id!==client.id)})} className="size-4 accent-coral"/>{client.name}</label>)}</fieldset>{invite.clientIds.length?<FormField label="Client access role" required><Select value={invite.clientAccessRoleId} onChange={e=>setInvite({...invite,clientAccessRoleId:e.target.value})}><option value="">Choose role for selected Clients</option>{roles.filter(role=>invite.roleIds.includes(role.id)).map(role=><option key={role.id} value={role.id}>{role.name}</option>)}</Select></FormField>:null}<div className="flex gap-3 border-t border-line pt-5"><Button type="submit" disabled={busy || invite.roleIds.length === 0 || (invite.clientIds.length > 0 && !invite.clientAccessRoleId)}>{busy ? <LoaderCircle className="size-4 animate-spin" /> : null}Send invitation</Button><Button variant="secondary" onClick={() => setInviteOpen(false)}>Cancel</Button></div></form></section></div> : null}
-    </div>
-  )
+export function TeamPage(){
+ const{workspace}=useAuth();const{language}=useI18n();const zh=language==='zh-CN';const[members,setMembers]=useState<ProductionTeamMemberRecord[]>([]);const[roles,setRoles]=useState<RoleRecord[]>([]);const[clients,setClients]=useState<ClientRecord[]>([]);const[loading,setLoading]=useState(true);const[busy,setBusy]=useState(false);const[error,setError]=useState('');const[notice,setNotice]=useState('');const[search,setSearch]=useState('');const[selectedId,setSelectedId]=useState<string|null>(null);const[createOpen,setCreateOpen]=useState(false);const[createForm,setCreateForm]=useState({name:'',title:''});const[edit,setEdit]=useState({name:'',title:'',active:true});const[login,setLogin]=useState({email:'',roleIds:[] as string[],clientIds:[] as string[],accessRoleId:''})
+ const isSuper=workspace?.roles.includes('Super Admin')??false;const selected=members.find(member=>member.id===selectedId)??null
+ const refresh=useCallback(async()=>{if(!workspace||!isSuper)return;setLoading(true);setError('');try{const[m,r,c]=await Promise.all([loadProductionTeam(workspace.id),loadRoles(workspace.id),loadClients(workspace.id)]);setMembers(m);setRoles(r);setClients(c.filter(item=>item.status==='active'))}catch(e){setError(e instanceof Error?e.message:'Unable to load Team')}finally{setLoading(false)}},[isSuper,workspace])
+ useEffect(()=>{const timer=window.setTimeout(()=>void refresh(),0);return()=>window.clearTimeout(timer)},[refresh])
+ const visible=useMemo(()=>{const term=search.trim().toLowerCase();return members.filter(member=>!term||[member.name,member.job_title??'',member.email??''].some(value=>value.toLowerCase().includes(term)))},[members,search])
+ const choose=(member:ProductionTeamMemberRecord)=>{setSelectedId(member.id);setEdit({name:member.name,title:member.job_title??'',active:member.status==='active'});setLogin({email:member.email??'',roleIds:[],clientIds:[],accessRoleId:''})}
+ async function run(action:()=>Promise<unknown>,message:string){setBusy(true);setError('');setNotice('');try{await action();setNotice(message);await refresh()}catch(e){setError(e instanceof Error?e.message:'Action failed')}finally{setBusy(false)}}
+ async function create(event:FormEvent){event.preventDefault();if(!workspace)return;await run(()=>createProductionTeamMember(workspace.id,createForm.name,createForm.title),zh?'团队成员已建立。':'Team Member created.');setCreateOpen(false);setCreateForm({name:'',title:''})}
+ async function enableLogin(event:FormEvent){event.preventDefault();if(!workspace||!selected)return;await run(async()=>{await prepareTeamMemberInvite(selected.id,login.email);await inviteExistingTeamMember({teamMemberId:selected.id,email:login.email,displayName:selected.name,jobTitle:selected.job_title??'',workspaceId:workspace.id,roleIds:login.roleIds,clientIds:login.clientIds,clientAccessRoleId:login.accessRoleId})},zh?'邀请已发送，并会绑定到现有成员。':'Invitation sent and linked to the existing member.')}
+ if(!isSuper)return <Card className="mx-auto mt-12 max-w-2xl text-center"><ShieldAlert className="mx-auto size-9 text-coral"/><h2 className="mt-4 text-2xl font-bold">{zh?'仅限 Super Admin':'Super Admin access required'}</h2></Card>
+ return <div className="page-enter space-y-5"><header className="flex flex-col gap-4 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[.2em] text-coral">{zh?'团队名单 · 登录分离':'Team roster · Login separate'}</p><h1 className="mt-1 font-display text-4xl font-semibold">{zh?'团队成员':'Team Members'}</h1><p className="mt-2 text-sm text-ink-muted">{zh?'先建立真实团队名单；只有需要进入系统的人才启用登录。':'Create the real roster first. Enable login only when access is needed.'}</p></div><Button onClick={()=>setCreateOpen(true)}><Plus className="size-4"/>{zh?'新增团队成员':'Add Team Member'}</Button></header>{error?<div role="alert" className="rounded-lg border border-coral/30 bg-coral/8 p-3 text-sm text-coral-dark">{error}</div>:null}{notice?<div className="rounded-lg border border-green/30 bg-green/8 p-3 text-sm text-green">{notice}</div>:null}<div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]"><Card className="overflow-hidden p-0"><div className="border-b border-line p-4"><label className="relative block"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint"/><Input className="pl-9" placeholder={zh?'搜索姓名或职位':'Search name or title'} value={search} onChange={e=>setSearch(e.target.value)}/></label></div>{loading?<div className="grid min-h-64 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral"/></div>:<div className="divide-y divide-line">{visible.map(member=><button key={member.id} onClick={()=>choose(member)} className="grid w-full grid-cols-[1fr_auto] gap-3 px-5 py-4 text-left hover:bg-canvas-raised"><div><p className="font-bold">{member.name}</p><p className="mt-1 text-sm text-ink-muted">{member.job_title|| (zh?'未填写职位':'No job title')}</p></div><div className="text-right"><StatusBadge tone={member.login_status==='enabled'?'success':member.login_status==='invited'?'warning':'neutral'}>{member.login_status==='enabled'?(zh?'已启用登录':'Login enabled'):member.login_status==='invited'?(zh?'邀请中':'Invited'):(zh?'未启用登录':'No login')}</StatusBadge><p className="mt-2 text-xs text-ink-faint">{member.status==='active'?(zh?'使用中':'Active'):(zh?'已停用':'Inactive')}</p></div></button>)}{!visible.length?<div className="p-10 text-center"><Users className="mx-auto size-8 text-ink-faint"/><p className="mt-3 font-bold">{zh?'没有成员':'No Team Members'}</p></div>:null}</div>}</Card><Card tone={selected?'default':'quiet'} className="h-fit xl:sticky xl:top-28">{!selected?<div className="py-12 text-center"><UserRoundCheck className="mx-auto size-8 text-ink-faint"/><p className="mt-3 font-bold">{zh?'选择一位成员':'Select a Team Member'}</p></div>:<div className="space-y-6"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-coral">{zh?'成员资料':'Member Profile'}</p><h2 className="mt-1 text-2xl font-bold">{selected.name}</h2><p className="mt-1 text-sm text-ink-muted">{selected.email|| (zh?'尚未启用登录':'Login not enabled')}</p></div><section className="space-y-3 border-t border-line pt-5"><FormField label={zh?'姓名':'Name'}><Input value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/></FormField><FormField label={zh?'职位（选填）':'Job title (optional)'}><Input value={edit.title} onChange={e=>setEdit({...edit,title:e.target.value})}/></FormField><label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={edit.active} onChange={e=>setEdit({...edit,active:e.target.checked})}/>{zh?'成员使用中':'Member active'}</label><Button size="sm" variant="secondary" disabled={busy} onClick={()=>void run(()=>updateProductionTeamMember(selected.id,edit.name,edit.title,edit.active),zh?'成员资料已更新。':'Member updated.')}>{zh?'保存资料':'Save Profile'}</Button></section>{selected.login_status==='not_enabled'?<form className="space-y-3 border-t border-line pt-5" onSubmit={enableLogin}><div><h3 className="font-bold">{zh?'启用登录':'Enable Login'}</h3><p className="mt-1 text-xs leading-5 text-ink-muted">{zh?'Auth User 会绑定到这笔成员资料，不会建立第二个人。':'The Auth User links back to this member; no duplicate person is created.'}</p></div><FormField label="Email" required><Input required type="email" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/></FormField><fieldset><legend className="mb-2 text-sm font-bold">{zh?'系统角色':'System Roles'}</legend><div className="space-y-2">{roles.map(role=><label key={role.id} className="flex gap-2 text-sm"><input type="checkbox" checked={login.roleIds.includes(role.id)} onChange={e=>setLogin({...login,roleIds:e.target.checked?[...login.roleIds,role.id]:login.roleIds.filter(id=>id!==role.id)})}/>{role.name}</label>)}</div></fieldset><fieldset><legend className="mb-2 text-sm font-bold">{zh?'客户访问（选填）':'Client access (optional)'}</legend>{clients.map(client=><label key={client.id} className="mr-3 inline-flex gap-2 text-sm"><input type="checkbox" checked={login.clientIds.includes(client.id)} onChange={e=>setLogin({...login,clientIds:e.target.checked?[...login.clientIds,client.id]:login.clientIds.filter(id=>id!==client.id)})}/>{client.name}</label>)}</fieldset>{login.clientIds.length?<Select value={login.accessRoleId} onChange={e=>setLogin({...login,accessRoleId:e.target.value})}><option value="">{zh?'选择访问角色':'Choose access role'}</option>{roles.filter(role=>login.roleIds.includes(role.id)).map(role=><option key={role.id} value={role.id}>{role.name}</option>)}</Select>:null}<Button disabled={busy||!login.email||!login.roleIds.length||(login.clientIds.length>0&&!login.accessRoleId)}><Link2 className="size-4"/>{zh?'发送邀请并绑定':'Invite and Link'}</Button></form>:<section className="border-t border-line pt-5"><h3 className="font-bold">{selected.login_status==='invited'?(zh?'邀请中':'Invitation pending'):(zh?'登录已启用':'Login enabled')}</h3><p className="mt-2 text-sm text-ink-muted">{selected.email}</p></section>}</div>}</Card></div>{createOpen?<div className="fixed inset-0 z-50 flex justify-end bg-ink/45" onMouseDown={e=>{if(e.target===e.currentTarget)setCreateOpen(false)}}><form className="h-full w-full max-w-lg bg-paper p-6 shadow-2xl" onSubmit={create}><div className="flex items-center justify-between"><h2 className="text-2xl font-bold">{zh?'新增团队成员':'Add Team Member'}</h2><Button size="icon" variant="ghost" onClick={()=>setCreateOpen(false)}><X className="size-5"/></Button></div><div className="mt-7 space-y-5"><FormField label={zh?'姓名':'Name'} required><Input required value={createForm.name} onChange={e=>setCreateForm({...createForm,name:e.target.value})}/></FormField><FormField label={zh?'职位（选填）':'Job title (optional)'}><Input value={createForm.title} onChange={e=>setCreateForm({...createForm,title:e.target.value})}/></FormField><p className="rounded-lg bg-canvas-raised p-3 text-sm text-ink-muted">{zh?'不需要 Email，也不会建立登录账号。':'No Email or login account is required.'}</p><Button disabled={busy}>{busy?<LoaderCircle className="size-4 animate-spin"/>:null}{zh?'建立成员':'Create Member'}</Button></div></form></div>:null}</div>
 }
