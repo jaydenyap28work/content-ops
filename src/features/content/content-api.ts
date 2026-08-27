@@ -60,11 +60,13 @@ export interface ContentRecord {
   archived_at: string | null
   archive_reason: string | null
   planned_date: string | null
+  shoot_scheduled_at?: string | null
   ownership_name: string
   ownership_type: 'internal_brand' | 'external_client'
   is_default_brand: boolean
   tags: string[]
-  contributors: Array<{ userId: string; roleId: string; notes: string | null }>
+  contributors: Array<{ userId: string; roleId: string; notes: string | null; displayName?: string; roleCode?: string; roleName?: string }>
+  publications?: Array<{ platformCode: string; scheduledAt: string | null; publishedAt: string | null; status: string }>
 }
 
 export interface ContentCatalog {
@@ -141,14 +143,20 @@ export async function loadContents(workspaceId: string, contentId?: string) {
   const [tagLinks, contributors, publications] = await Promise.all([
     supabase.from('content_tags').select('content_id, tag_id').in('content_id', ids),
     supabase.from('content_contributors').select('content_id, user_profile_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
-    supabase.from('publications').select('content_id, is_required, status').in('content_id', ids),
+    supabase.from('publications').select('content_id, platform_id, is_required, status, scheduled_at, published_at').in('content_id', ids),
   ])
   fail(tagLinks.error); fail(contributors.error); fail(publications.error)
   const tagIds = [...new Set((tagLinks.data ?? []).map((row) => row.tag_id as string))]
-  const tags = tagIds.length
-    ? await supabase.from('tags').select('id, name').in('id', tagIds)
-    : { data: [], error: null }
-  fail(tags.error)
+  const contributorUserIds = [...new Set((contributors.data ?? []).map((row) => row.user_profile_id as string))]
+  const contributorRoleIds = [...new Set((contributors.data ?? []).map((row) => row.contribution_role_id as string))]
+  const platformIds = [...new Set((publications.data ?? []).map((row) => row.platform_id as string))]
+  const [tags, contributorUsers, contributorRoles, platforms] = await Promise.all([
+    tagIds.length ? supabase.from('tags').select('id, name').in('id', tagIds) : Promise.resolve({ data: [], error: null }),
+    contributorUserIds.length ? supabase.from('user_profiles').select('id, display_name').in('id', contributorUserIds) : Promise.resolve({ data: [], error: null }),
+    contributorRoleIds.length ? supabase.from('contribution_roles').select('id, code, name').in('id', contributorRoleIds) : Promise.resolve({ data: [], error: null }),
+    platformIds.length ? supabase.from('platforms').select('id, code').in('id', platformIds) : Promise.resolve({ data: [], error: null }),
+  ])
+  fail(tags.error); fail(contributorUsers.error); fail(contributorRoles.error); fail(platforms.error)
   return rows.map((row) => {
     const publicationRows = (publications.data ?? []).filter((item) => item.content_id === row.id)
     const required = publicationRows.filter((item) => item.is_required)
@@ -168,7 +176,16 @@ export async function loadContents(workspaceId: string, contentId?: string) {
         userId: item.user_profile_id as string,
         roleId: item.contribution_role_id as string,
         notes: item.notes as string | null,
+        displayName: (contributorUsers.data ?? []).find((user) => user.id === item.user_profile_id)?.display_name as string ?? '',
+        roleCode: (contributorRoles.data ?? []).find((role) => role.id === item.contribution_role_id)?.code as string ?? '',
+        roleName: (contributorRoles.data ?? []).find((role) => role.id === item.contribution_role_id)?.name as string ?? '',
       })),
+    publications: publicationRows.map((item) => ({
+      platformCode: (platforms.data ?? []).find((platform) => platform.id === item.platform_id)?.code as string ?? '',
+      scheduledAt: item.scheduled_at as string | null,
+      publishedAt: item.published_at as string | null,
+      status: item.status as string,
+    })),
   })}) as ContentRecord[]
 }
 

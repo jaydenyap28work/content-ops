@@ -14,13 +14,13 @@ const titles = [
 
 function idea(title: string): IdeaRecord {
   return {
-    id: title, workspace_id: 'workspace', client_id: 'client', title, planned_date: '2026-09-01',
+    id: title, workspace_id: 'workspace', client_id: 'client', title, planned_date: '2026-09-01', shoot_planned_at: null,
     source_url: null, original_topic: null, original_hook: 'Existing hook', why_it_works: null,
     our_angle: 'Existing angle', category_id: null, suggested_format: 'Q&A', priority: 'normal',
-    status: 'approved', owner_user_id: null, created_by: 'creator', owner_name: null,
+    status: 'approved', planning_status: 'confirmed', owner_user_id: null, created_by: 'creator', owner_name: null,
     creator_name: 'Creator', notes: null, status_reason: null, created_at: '', updated_at: '',
     referenceIds: [], contributors: [], tags: [], linked_content_id: null, linked_content_code: null,
-    linked_content_status: null, linked_content_record_status: null, linked_content_planned_date: null,
+    linked_content_status: null, linked_content_record_status: null, linked_content_planned_date: null, linked_content_shoot_scheduled_at: null,
   }
 }
 

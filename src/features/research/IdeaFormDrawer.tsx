@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Button, Card, FormField, Input, Select, Textarea } from '../../components/ui'
 import { useAuth } from '../auth/auth-context'
+import { useI18n } from '../i18n/i18n'
 import {
   loadContributorOptions,
   saveIdea,
@@ -160,6 +161,8 @@ export function IdeaFormDrawer({
   onSaved,
 }: IdeaFormDrawerProps) {
   const { session } = useAuth()
+  const { language } = useI18n()
+  const zh = language === 'zh-CN'
   const [form, setForm] = useState(() =>
     initialForm(idea, catalog, session?.user.id ?? ''),
   )
@@ -369,9 +372,9 @@ export function IdeaFormDrawer({
               </Select>
             </FormField>
             <FormField
-              label="Planned Date"
+              label={zh ? '目标发布日期' : 'Target Publish Date'}
               htmlFor="idea-planned-date"
-              hint="Planning target only — not an actual publish date."
+              hint={zh ? 'Marketing 预计发布日期；不是拍摄日期或实际发布时间。' : 'Marketing target; not the shoot date or actual publish time.'}
             >
               <Input
                 id="idea-planned-date"

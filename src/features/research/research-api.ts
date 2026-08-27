@@ -32,6 +32,7 @@ export interface ReferenceRecord {
 }
 
 export type IdeaStatus = 'new' | 'evaluating' | 'approved' | 'converted' | 'rejected' | 'archived'
+export type PlanningStatus = 'new' | 'evaluating' | 'confirmed' | 'paused' | 'rejected' | 'archived'
 
 export interface IdeaRecord {
   id: string
@@ -39,6 +40,7 @@ export interface IdeaRecord {
   client_id: string
   title: string
   planned_date: string | null
+  shoot_planned_at: string | null
   source_url: string | null
   original_topic: string | null
   original_hook: string | null
@@ -48,6 +50,7 @@ export interface IdeaRecord {
   suggested_format: string | null
   priority: 'low' | 'normal' | 'high' | 'urgent'
   status: IdeaStatus
+  planning_status: PlanningStatus
   owner_user_id: string | null
   created_by: string
   owner_name: string | null
@@ -57,6 +60,7 @@ export interface IdeaRecord {
   linked_content_status: string | null
   linked_content_record_status: string | null
   linked_content_planned_date: string | null
+  linked_content_shoot_scheduled_at: string | null
   notes: string | null
   status_reason: string | null
   created_at: string
@@ -117,7 +121,7 @@ export async function loadReferences(workspaceId: string) {
 
 export async function loadIdeas(workspaceId: string) {
   const [ideas, plannerContext] = await Promise.all([
-    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, source_url, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('planned_date', { ascending: true, nullsFirst: false }),
+    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, source_url, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('planned_date', { ascending: true, nullsFirst: false }),
     supabase.rpc('list_idea_planner_context', { target_workspace_id: workspaceId }),
   ])
   fail(ideas.error); fail(plannerContext.error)
