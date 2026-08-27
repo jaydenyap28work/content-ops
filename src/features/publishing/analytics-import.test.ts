@@ -1,0 +1,3 @@
+import{describe,expect,it}from'vitest'
+import{nullableMetric,parseAnalyticsTable}from'./analytics-import'
+describe('analytics import',()=>{it('keeps N/A and blanks as null',()=>{expect(nullableMetric('N/A')).toBeNull();expect(nullableMetric('')).toBeNull();expect(nullableMetric('0')).toBe(0)});it('parses pasted tabular data',()=>{const rows=parseAnalyticsTable('平台\t内容\t播放\t触及\t赞\nFacebook\tTopic A\t1,234\tN/A\t88');expect(rows[0]).toMatchObject({platform:'Facebook',publication:'Topic A',views:1234,reach:null,likes:88})});it('parses quoted CSV',()=>expect(parseAnalyticsTable('platform,content,views\nYouTube,"Topic, One",900')[0].publication).toBe('Topic, One'))})

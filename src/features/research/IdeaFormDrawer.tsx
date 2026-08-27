@@ -27,6 +27,7 @@ import {
   mergeSuggestedTags,
   applySuggestionIfEmpty,
 } from './idea-suggestions'
+import { parseSourceInput } from './source-url'
 
 type ContributorDraft = { userId: string; roleId: string }
 
@@ -305,6 +306,11 @@ export function IdeaFormDrawer({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    const parsedSource = parseSourceInput(form.sourceUrl)
+    if (form.sourceUrl.trim() && !parsedSource.url) {
+      setError(zh ? '没有检测到有效链接，请检查后再试' : 'No valid link was detected. Check it and try again')
+      return
+    }
     setBusy(true)
     setError(null)
 
@@ -312,6 +318,8 @@ export function IdeaFormDrawer({
       await saveIdea(workspaceId, {
         id: idea?.id,
         ...form,
+        sourceUrl: parsedSource.url ?? '',
+        sourcePlatform: parsedSource.platform,
         categoryId: form.categoryId || null,
         ownerUserId: form.ownerUserId || null,
         tags: parseTags(form.tags),
@@ -374,7 +382,7 @@ export function IdeaFormDrawer({
             <FormField
               label={zh ? '目标发布日期' : 'Target Publish Date'}
               htmlFor="idea-planned-date"
-              hint={zh ? 'Marketing 预计发布日期；不是拍摄日期或实际发布时间。' : 'Marketing target; not the shoot date or actual publish time.'}
+              hint={zh ? 'Marketing 预计发布日期；不是拍摄日期或实际发布时间' : 'Marketing target; not the shoot date or actual publish time.'}
             >
               <Input
                 id="idea-planned-date"
@@ -525,8 +533,8 @@ export function IdeaFormDrawer({
               <FormField label="Hook" htmlFor="idea-hook">
                 <Input id="idea-hook" value={form.originalHook} onChange={(event) => setForm({ ...form, originalHook: event.target.value })} />
               </FormField>
-              <FormField label="Source URL" htmlFor="idea-url">
-                <Input id="idea-url" type="url" value={form.sourceUrl} onChange={(event) => setForm({ ...form, sourceUrl: event.target.value })} />
+              <FormField label={zh ? '来源链接（选填）' : 'Source URL (optional)'} htmlFor="idea-url" hint={zh ? '可粘贴整段分享文字，系统会提取第一个链接' : 'Paste a URL or full share text; the first link will be extracted'}>
+                <Textarea id="idea-url" rows={3} value={form.sourceUrl} onChange={(event) => setForm({ ...form, sourceUrl: event.target.value })} />
               </FormField>
               <FormField label="Why it works" htmlFor="idea-why">
                 <Textarea id="idea-why" value={form.whyItWorks} onChange={(event) => setForm({ ...form, whyItWorks: event.target.value })} />

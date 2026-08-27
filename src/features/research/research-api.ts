@@ -43,6 +43,7 @@ export interface IdeaRecord {
   shoot_planned_at: string | null
   planned_shoot_date?: string | null
   source_url: string | null
+  source_platform?: string | null
   original_topic: string | null
   original_hook: string | null
   why_it_works: string | null
@@ -123,7 +124,7 @@ export async function loadReferences(workspaceId: string) {
 
 export async function loadIdeas(workspaceId: string) {
   const [ideas, plannerContext] = await Promise.all([
-    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('planned_shoot_date', { ascending: true, nullsFirst: false }),
+    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, source_platform, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('planned_shoot_date', { ascending: true, nullsFirst: false }),
     supabase.rpc('list_idea_planner_context', { target_workspace_id: workspaceId }),
   ])
   fail(ideas.error); fail(plannerContext.error)
@@ -168,7 +169,7 @@ export async function archiveReference(id: string) {
 }
 
 export async function saveIdea(workspaceId: string, values: {
-  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; originalTopic: string; originalHook: string;
+  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; originalTopic: string; originalHook: string;
   whyItWorks: string; ourAngle: string; categoryId: string | null; suggestedFormat: string; priority: string;
   ownerUserId: string | null; notes: string; referenceIds: string[]; tags: string[];
   contributors: Array<{ userId: string; roleId: string; notes?: string }>
@@ -180,7 +181,7 @@ export async function saveIdea(workspaceId: string, values: {
     target_category_id: values.categoryId, target_suggested_format: values.suggestedFormat, target_priority: values.priority,
     target_owner_user_id: values.ownerUserId, target_notes: values.notes, target_reference_ids: values.referenceIds,
     target_tag_names: values.tags, target_contributors: values.contributors,
-    target_planned_date: values.plannedDate || null,
+    target_planned_date: values.plannedDate || null, target_source_platform: values.sourcePlatform,
   })
   fail(error); return data as string
 }

@@ -1,0 +1,8 @@
+import {supabase} from '../../lib/supabase'
+export type TaskStatus='pending'|'in_progress'|'completed'
+export interface TaskRecord{id:string;workspace_id:string;content_id:string|null;content_title:string|null;title:string;notes:string|null;assigned_team_member_id:string|null;assigned_name:string|null;due_date:string|null;status:TaskStatus;is_mine:boolean;created_by:string;created_at:string;updated_at:string}
+function fail(error:{message:string}|null){if(error)throw new Error(error.message)}
+export async function loadTasks(workspaceId:string){const{data,error}=await supabase.rpc('list_tasks',{target_workspace_id:workspaceId});fail(error);return(data??[])as TaskRecord[]}
+export async function saveTask(workspaceId:string,values:{id?:string;title:string;notes:string;assigneeId:string;dueDate:string;status:TaskStatus;contentId:string}){const{data,error}=await supabase.rpc('save_task',{target_task_id:values.id??null,target_workspace_id:workspaceId,target_title:values.title,target_notes:values.notes,target_assigned_team_member_id:values.assigneeId||null,target_due_date:values.dueDate||null,target_status:values.status,target_content_id:values.contentId||null});fail(error);return data as string}
+export async function deleteTask(id:string){const{error}=await supabase.rpc('delete_task',{target_task_id:id});fail(error)}
+export async function loadTaskTeam(workspaceId:string){const{data,error}=await supabase.from('team_members').select('id,name,status').eq('workspace_id',workspaceId).eq('status','active').order('name');fail(error);return(data??[])as Array<{id:string;name:string;status:'active'}>}

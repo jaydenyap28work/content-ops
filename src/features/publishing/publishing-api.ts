@@ -41,5 +41,9 @@ export async function loadAnalyticsQueue(workspaceId:string){
     supabase.from('social_accounts').select('*').eq('is_active',true),
     supabase.rpc('list_contents',{target_workspace_id:workspaceId,target_content_id:null}),
   ]);[publications,snapshots,platforms,accounts,contents].forEach((r)=>fail(r.error))
-  return {publications:(publications.data??[]) as PublicationRecord[],snapshots:(snapshots.data??[]) as AnalyticsSnapshotRecord[],platforms:(platforms.data??[]) as PlatformRecord[],accounts:(accounts.data??[]) as SocialAccountRecord[],contents:(contents.data??[]) as Array<{id:string;client_id:string;content_code:string;title:string}>}
+  return {publications:(publications.data??[]) as PublicationRecord[],snapshots:(snapshots.data??[]) as AnalyticsSnapshotRecord[],platforms:(platforms.data??[]) as PlatformRecord[],accounts:(accounts.data??[]) as SocialAccountRecord[],contents:(contents.data??[]) as Array<{id:string;client_id:string;content_code:string;title:string;category_id:string|null}>}
+}
+
+export async function addImportedAnalyticsSnapshot(values:{publicationId:string;capturedAt:string;dataSource:'manual'|'csv';views:number|null;reach:number|null;likes:number|null;comments:number|null;shares:number|null;saves:number|null;note:string}){
+ const{data,error}=await supabase.rpc('add_imported_analytics_snapshot',{target_publication_id:values.publicationId,target_captured_at:values.capturedAt,target_data_source:values.dataSource,target_views_or_plays:values.views,target_reach:values.reach,target_likes:values.likes,target_comments:values.comments,target_shares:values.shares,target_saves_or_collects:values.saves,target_note:values.note});fail(error);return data as string
 }

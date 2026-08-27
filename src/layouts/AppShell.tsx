@@ -57,7 +57,7 @@ export function AppShell() {
           >
             <span className="inline-flex items-center gap-2">
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-              {zh?'正在背景确认工作区权限，当前页面与输入会保持不变。':'Rechecking workspace access in the background… Your current work stays open.'}
+              {zh?'正在背景确认工作区权限，当前页面与输入会保持不变':'Rechecking workspace access in the background… Your current work stays open.'}
             </span>
           </div>
         ) : null}
@@ -68,7 +68,7 @@ export function AppShell() {
           >
             <span className="inline-flex items-center gap-2 font-semibold">
               <AlertTriangle className="size-4 text-gold-dark" aria-hidden="true" />
-              {zh?'工作区背景检查中断；页面和表单仍保持打开。':'Workspace recheck was interrupted. Your page and form remain open.'}
+              {zh?'工作区背景检查中断；页面和表单仍保持打开':'Workspace recheck was interrupted. Your page and form remain open.'}
             </span>
             <Button
               size="sm"
