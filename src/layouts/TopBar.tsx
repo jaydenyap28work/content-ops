@@ -11,7 +11,8 @@ interface TopBarProps {
 export function TopBar({ onOpenNavigation }: TopBarProps) {
   const route = useCurrentRoute()
   const { session, workspace, signOut } = useAuth()
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const zh = language === 'zh-CN'
 
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/90 backdrop-blur-xl">
@@ -26,8 +27,8 @@ export function TopBar({ onOpenNavigation }: TopBarProps) {
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-bold uppercase tracking-[0.18em] text-ink-muted">Content operations</p>
-          <h1 className="truncate font-display text-xl font-semibold text-ink sm:text-2xl">{route ? t(routeTranslationKeys[route.path]) : 'Page not found'}</h1>
+          <p className="truncate text-xs font-bold uppercase tracking-[0.18em] text-ink-muted">{zh?'内容运营':'Content operations'}</p>
+          <h1 className="truncate font-display text-xl font-semibold text-ink sm:text-2xl">{route ? t(routeTranslationKeys[route.path]) : (zh ? '找不到页面' : 'Page not found')}</h1>
         </div>
 
         <LanguageSwitch compact />
@@ -38,13 +39,13 @@ export function TopBar({ onOpenNavigation }: TopBarProps) {
               {workspace?.name} · {workspace?.roles.join(', ') || 'Member'}
             </p>
           </div>
-          <StatusBadge tone="info">Authenticated</StatusBadge>
+          <StatusBadge tone="info">{zh?'已登录':'Authenticated'}</StatusBadge>
           <button
             type="button"
             className="grid size-10 place-items-center rounded-lg border border-line bg-white text-ink-muted transition hover:border-coral/40 hover:text-coral"
             onClick={() => void signOut()}
-            aria-label="Sign out"
-            title="Sign out"
+            aria-label={zh?'登出':'Sign out'}
+            title={zh?'登出':'Sign out'}
           >
             <LogOut className="size-4" aria-hidden="true" />
           </button>

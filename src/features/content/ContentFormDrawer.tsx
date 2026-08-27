@@ -48,7 +48,7 @@ function initialForm(catalog: ContentCatalog, content?: ContentRecord | null): F
     directCreationReason: content.direct_creation_reason ?? '',
     tags: content.tags.join(', '),
   } : {
-    clientId: catalog.clients[0]?.id ?? '',
+    clientId: catalog.clients.find((client) => client.is_default_brand)?.id ?? catalog.clients[0]?.id ?? '',
     title: '',
     workingTitle: '',
     categoryId: '',

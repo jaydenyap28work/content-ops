@@ -1,113 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Camera, LoaderCircle, Save, ShieldAlert, Sparkles } from 'lucide-react'
+import { Edit3, LoaderCircle, Save, ShieldAlert, Sparkles, X } from 'lucide-react'
 import { Button, Card, FormField, Input, Select, Textarea } from '../../components/ui'
+import { useI18n } from '../i18n/i18n'
 import { loadContributorOptions } from '../research/research-api'
 import type { IdeaRecord, ReferenceRecord } from '../research/research-api'
 import { generateShootingBriefs, loadShootingBrief, saveShootingBrief } from './pilot-api'
 import { toShootingBriefGenerationInput } from './shooting-brief-templates'
-
-const lines = (value: string) => value.split('\n').map((item) => item.trim()).filter(Boolean)
-const emptyBrief = {
-  whyNow: '', questions: '', points: '', takeaway: '', cta: '', duration: '', visuals: '', factChecks: '',
-  talent: '', shootDate: '', location: '', shooter: '',
-}
-
-export function ShootingBrief({ idea, references }: { idea: IdeaRecord; references: ReferenceRecord[] }) {
-  const [brief, setBrief] = useState(emptyBrief)
-  const [people, setPeople] = useState<Array<{ user_profile_id: string; display_name: string }>>([])
-  const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [error, setError] = useState('')
-
-  const refresh = useCallback(async () => {
-    const [saved, options] = await Promise.all([loadShootingBrief(idea.id), loadContributorOptions(idea.client_id)])
-    setPeople(options)
-    if (saved) setBrief({
-      whyNow: saved.why_now ?? '', questions: saved.interview_questions.join('\n'),
-      points: saved.key_talking_points.join('\n'), takeaway: saved.key_takeaway ?? '',
-      cta: saved.suggested_cta ?? '', duration: saved.target_duration ?? '',
-      visuals: saved.b_roll_visual_suggestions.join('\n'), factChecks: saved.risk_fact_check_notes.join('\n'),
-      talent: saved.talent ?? '', shootDate: saved.shoot_date ?? '', location: saved.location ?? '',
-      shooter: saved.shooter_user_id ?? '',
-    })
-  }, [idea.client_id, idea.id])
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void refresh(), 0)
-    return () => window.clearTimeout(timer)
-  }, [refresh])
-
-  async function generate() {
-    setBusy(true); setError(''); setNotice('')
-    try {
-      await generateShootingBriefs([toShootingBriefGenerationInput(idea)])
-      await refresh()
-      setNotice('已生成拍摄简报；只填补空白字段，现有修改不会被覆盖。')
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '无法生成拍摄简报')
-    } finally { setBusy(false) }
-  }
-
-  async function save() {
-    setBusy(true); setError(''); setNotice('')
-    try {
-      await saveShootingBrief(idea.id, {
-        why_now: brief.whyNow,
-        interview_questions: lines(brief.questions).slice(0, 5),
-        key_talking_points: lines(brief.points),
-        key_takeaway: brief.takeaway,
-        suggested_cta: brief.cta,
-        target_duration: brief.duration,
-        b_roll_visual_suggestions: lines(brief.visuals),
-        risk_fact_check_notes: lines(brief.factChecks),
-        talent: brief.talent,
-        shoot_date: brief.shootDate || null,
-        location: brief.location,
-        shooter_user_id: brief.shooter || null,
-      })
-      setNotice('拍摄简报已保存 / Shooting brief saved')
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '无法保存拍摄简报')
-    } finally { setBusy(false) }
-  }
-
-  return <div className="space-y-5">
-    <Card className="border-coral/25 bg-coral/[.035]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3"><Camera className="mt-1 size-5 text-coral" /><div><p className="text-xs font-extrabold uppercase tracking-[.18em] text-coral">拍摄简报 / Shooting Brief</p><h3 className="mt-2 text-2xl font-bold">{idea.title}</h3><p className="mt-2 text-sm text-ink-muted">提供可直接访问与拍摄的表达方向，不替出镜者决定固定立场。</p></div></div>
-        <Button variant="secondary" onClick={() => void generate()} disabled={busy}><Sparkles className="size-4" />生成拍摄简报</Button>
-      </div>
-    </Card>
-    {notice ? <p className="rounded-lg bg-green/8 p-3 text-sm text-green">{notice}</p> : null}
-    {error ? <p role="alert" className="rounded-lg border border-coral/25 bg-coral/7 p-3 text-sm text-coral-dark">{error}</p> : null}
-
-    <div className="grid gap-5 lg:grid-cols-2">
-      <FormField label="Why Now / 为什么现在值得讲"><Textarea rows={5} value={brief.whyNow} onChange={(event) => setBrief({ ...brief, whyNow: event.target.value })} /></FormField>
-      <FormField label="Suggested Hook / 建议开场"><Textarea rows={5} value={idea.original_hook ?? ''} readOnly /></FormField>
-      <FormField label="Interview Questions / 访问提问" hint="每行一题，3–5 题"><Textarea rows={8} value={brief.questions} onChange={(event) => setBrief({ ...brief, questions: event.target.value })} /></FormField>
-      <FormField label="Key Talking Points / 核心表达方向" hint="每行一个方向，不是标准答案"><Textarea rows={8} value={brief.points} onChange={(event) => setBrief({ ...brief, points: event.target.value })} /></FormField>
-      <FormField label="Key Takeaway / 核心带走"><Textarea rows={4} value={brief.takeaway} onChange={(event) => setBrief({ ...brief, takeaway: event.target.value })} /></FormField>
-      <FormField label="Suggested CTA"><Textarea rows={4} value={brief.cta} onChange={(event) => setBrief({ ...brief, cta: event.target.value })} /></FormField>
-      <FormField label="Format"><Input value={idea.suggested_format ?? ''} readOnly /></FormField>
-      <FormField label="Target Duration"><Input value={brief.duration} onChange={(event) => setBrief({ ...brief, duration: event.target.value })} /></FormField>
-      <FormField label="B-roll / Visual Suggestions" hint="每行一个画面建议"><Textarea rows={7} value={brief.visuals} onChange={(event) => setBrief({ ...brief, visuals: event.target.value })} /></FormField>
-      <FormField label="Risk / Fact Check Notes" hint="每行一个核查或风险提醒"><Textarea rows={7} value={brief.factChecks} onChange={(event) => setBrief({ ...brief, factChecks: event.target.value })} /></FormField>
-    </div>
-
-    {brief.factChecks ? <Card className="border-gold/35 bg-gold/8"><div className="flex gap-3"><ShieldAlert className="mt-0.5 size-5 text-gold-dark" /><div><p className="text-sm font-extrabold uppercase tracking-wider text-gold-dark">拍摄前核查</p><ul className="mt-2 space-y-2 text-sm leading-6 text-ink-soft">{lines(brief.factChecks).map((note) => <li key={note}>• {note}</li>)}</ul></div></div></Card> : null}
-
-    <details className="rounded-xl border border-line bg-paper">
-      <summary className="cursor-pointer px-4 py-3 font-bold">执行资料 / Execution details</summary>
-      <div className="grid gap-4 border-t border-line p-4 sm:grid-cols-2">
-        <FormField label="Talent / 出镜"><Input value={brief.talent} onChange={(event) => setBrief({ ...brief, talent: event.target.value })} /></FormField>
-        <FormField label="Shooter / 拍摄"><Select value={brief.shooter} onChange={(event) => setBrief({ ...brief, shooter: event.target.value })}><option value="">Unassigned</option>{people.map((person) => <option key={person.user_profile_id} value={person.user_profile_id}>{person.display_name}</option>)}</Select></FormField>
-        <FormField label="Shoot Date"><Input type="date" value={brief.shootDate} onChange={(event) => setBrief({ ...brief, shootDate: event.target.value })} /></FormField>
-        <FormField label="Location"><Input value={brief.location} onChange={(event) => setBrief({ ...brief, location: event.target.value })} /></FormField>
-      </div>
-    </details>
-
-    <div><p className="text-sm font-bold">References</p><div className="mt-2 space-y-2">{references.filter((reference) => idea.referenceIds.includes(reference.id)).map((reference) => <a key={reference.id} href={reference.url} target="_blank" rel="noreferrer" className="block truncate rounded-lg border border-line p-3 text-sm text-blue">{reference.title}</a>)}</div></div>
-    <Button onClick={() => void save()} disabled={busy}>{busy ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}保存拍摄简报</Button>
-    <details className="rounded-xl border border-line"><summary className="cursor-pointer px-4 py-3 font-bold">更多 / Internal Notes</summary><div className="border-t border-line p-4 text-sm text-ink-muted"><p>{idea.notes || 'No internal notes.'}</p></div></details>
-  </div>
+const lines=(value:string)=>value.split('\n').map(v=>v.trim()).filter(Boolean)
+const emptyBrief={whyNow:'',questions:'',points:'',takeaway:'',cta:'',duration:'',visuals:'',factChecks:'',talent:'',shootDate:'',location:'',shooter:''}
+export function ShootingBrief({idea,references}:{idea:IdeaRecord;references:ReferenceRecord[]}){
+ const{language}=useI18n();const zh=language==='zh-CN';const[brief,setBrief]=useState(emptyBrief);const[people,setPeople]=useState<Array<{user_profile_id:string;display_name:string}>>([]);const[editing,setEditing]=useState(false);const[busy,setBusy]=useState(false);const[notice,setNotice]=useState('');const[error,setError]=useState('')
+ const refresh=useCallback(async()=>{const[saved,options]=await Promise.all([loadShootingBrief(idea.id),loadContributorOptions(idea.client_id)]);setPeople(options);if(saved)setBrief({whyNow:saved.why_now??'',questions:saved.interview_questions.join('\n'),points:saved.key_talking_points.join('\n'),takeaway:saved.key_takeaway??'',cta:saved.suggested_cta??'',duration:saved.target_duration??'',visuals:saved.b_roll_visual_suggestions.join('\n'),factChecks:saved.risk_fact_check_notes.join('\n'),talent:saved.talent??'',shootDate:saved.shoot_date??'',location:saved.location??'',shooter:saved.shooter_user_id??''})},[idea.client_id,idea.id]);useEffect(()=>{const timer=window.setTimeout(()=>void refresh(),0);return()=>window.clearTimeout(timer)},[refresh])
+ async function generate(){setBusy(true);setError('');try{await generateShootingBriefs([toShootingBriefGenerationInput(idea)]);await refresh();setNotice(zh?'已填补空白简报字段，不会覆盖现有修改。':'Blank brief fields filled without overwriting edits.')}catch(e){setError(e instanceof Error?e.message:'Unable to generate')}finally{setBusy(false)}}
+ async function save(){setBusy(true);setError('');try{await saveShootingBrief(idea.id,{why_now:brief.whyNow,interview_questions:lines(brief.questions).slice(0,5),key_talking_points:lines(brief.points),key_takeaway:brief.takeaway,suggested_cta:brief.cta,target_duration:brief.duration,b_roll_visual_suggestions:lines(brief.visuals),risk_fact_check_notes:lines(brief.factChecks),talent:brief.talent,shoot_date:brief.shootDate||null,location:brief.location,shooter_user_id:brief.shooter||null});setEditing(false);setNotice(zh?'拍摄简报已保存':'Shooting brief saved')}catch(e){setError(e instanceof Error?e.message:'Unable to save')}finally{setBusy(false)}}
+ const section=(title:string,value:string|undefined,list=false)=><section><p className="text-[.68rem] font-extrabold uppercase tracking-[.15em] text-ink-faint">{title}</p>{list?<ol className="mt-2 space-y-2 text-sm leading-6">{lines(value??'').map((v,i)=><li key={`${v}-${i}`} className="flex gap-3"><span className="font-mono text-coral">{i+1}.</span><span>{v}</span></li>)}{!lines(value??'').length?<li className="text-ink-faint">—</li>:null}</ol>:<p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-ink-soft">{value||'—'}</p>}</section>
+ if(!editing)return <div className="space-y-5" data-testid="shooting-brief-view"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4"><div><p className="text-xs font-extrabold uppercase tracking-[.18em] text-coral">{zh?'拍摄简报':'Shooting Brief'}</p><p className="mt-1 text-sm text-ink-muted">{zh?'拍摄现场阅读版，不替出镜者决定固定立场。':'A reading-first guide that does not prescribe the speaker’s position.'}</p></div><div className="flex gap-2"><Button variant="secondary" size="sm" onClick={()=>void generate()} disabled={busy}><Sparkles className="size-4"/>{zh?'生成简报':'Generate Brief'}</Button><Button size="sm" onClick={()=>setEditing(true)}><Edit3 className="size-4"/>{zh?'编辑拍摄简报':'Edit Brief'}</Button></div></div>{notice?<p className="rounded-lg bg-green/8 p-3 text-sm text-green">{notice}</p>:null}<div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">{section(zh?'为什么现在值得讲':'Why Now',brief.whyNow)}{section(zh?'建议开场':'Suggested Hook',idea.original_hook??'')}{section(zh?'访问提问':'Interview Questions',brief.questions,true)}{section(zh?'核心表达方向':'Key Talking Points',brief.points,true)}{section(zh?'观众看完要记住什么':'Key Takeaway',brief.takeaway)}{section(zh?'建议结尾':'Suggested CTA',brief.cta)}{section(zh?'内容形式':'Format',idea.suggested_format??'')}{section(zh?'建议时长':'Target Duration',brief.duration)}{section(zh?'画面建议':'Visual Suggestions',brief.visuals,true)}{section(zh?'风险与资料核查':'Risk / Fact Check',brief.factChecks,true)}</div><div className="border-t border-line pt-5"><p className="text-[.68rem] font-extrabold uppercase tracking-wider text-ink-faint">{zh?'拍摄安排':'Shooting Arrangement'}</p><dl className="mt-3 grid gap-4 sm:grid-cols-4"><div><dt className="text-xs text-ink-muted">{zh?'出镜人':'Talent'}</dt><dd className="mt-1 font-bold">{brief.talent||'—'}</dd></div><div><dt className="text-xs text-ink-muted">{zh?'拍摄负责人':'Shooter'}</dt><dd className="mt-1 font-bold">{people.find(p=>p.user_profile_id===brief.shooter)?.display_name||'—'}</dd></div><div><dt className="text-xs text-ink-muted">{zh?'拍摄日期':'Shoot Date'}</dt><dd className="mt-1 font-bold">{brief.shootDate||'—'}</dd></div><div><dt className="text-xs text-ink-muted">{zh?'拍摄地点':'Location'}</dt><dd className="mt-1 font-bold">{brief.location||'—'}</dd></div></dl></div>{references.length?<div><p className="text-sm font-bold">{zh?'参考资料':'References'}</p><div className="mt-2 flex flex-wrap gap-2">{references.map(r=><a key={r.id} href={r.url} target="_blank" rel="noreferrer" className="rounded-lg border border-line px-3 py-2 text-sm text-blue hover:border-blue">{r.title}</a>)}</div></div>:null}</div>
+ return <div className="space-y-5" data-testid="shooting-brief-edit"><div className="flex items-center justify-between"><h3 className="text-xl font-bold">{zh?'编辑拍摄简报':'Edit Shooting Brief'}</h3><Button size="icon" variant="ghost" onClick={()=>setEditing(false)}><X className="size-5"/></Button></div>{error?<p role="alert" className="rounded-lg bg-coral/8 p-3 text-sm text-coral-dark">{error}</p>:null}<div className="grid gap-5 lg:grid-cols-2"><FormField label={zh?'为什么现在值得讲':'Why Now'}><Textarea rows={5} value={brief.whyNow} onChange={e=>setBrief({...brief,whyNow:e.target.value})}/></FormField><FormField label={zh?'访问提问':'Interview Questions'}><Textarea rows={8} value={brief.questions} onChange={e=>setBrief({...brief,questions:e.target.value})}/></FormField><FormField label={zh?'核心表达方向':'Key Talking Points'}><Textarea rows={8} value={brief.points} onChange={e=>setBrief({...brief,points:e.target.value})}/></FormField><FormField label={zh?'观众看完要记住什么':'Key Takeaway'}><Textarea value={brief.takeaway} onChange={e=>setBrief({...brief,takeaway:e.target.value})}/></FormField><FormField label={zh?'建议结尾':'Suggested CTA'}><Textarea value={brief.cta} onChange={e=>setBrief({...brief,cta:e.target.value})}/></FormField><FormField label={zh?'建议时长':'Target Duration'}><Input value={brief.duration} onChange={e=>setBrief({...brief,duration:e.target.value})}/></FormField><FormField label={zh?'画面建议':'Visual Suggestions'}><Textarea rows={6} value={brief.visuals} onChange={e=>setBrief({...brief,visuals:e.target.value})}/></FormField><FormField label={zh?'风险与资料核查':'Risk / Fact Check'}><Textarea rows={6} value={brief.factChecks} onChange={e=>setBrief({...brief,factChecks:e.target.value})}/></FormField></div>{brief.factChecks?<Card className="border-gold/35 bg-gold/8"><ShieldAlert className="size-5 text-gold-dark"/><p className="mt-2 text-sm">{zh?'保存前确认需要核查的资料。':'Confirm fact-check items before saving.'}</p></Card>:null}<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><FormField label={zh?'出镜人':'Talent'}><Input value={brief.talent} onChange={e=>setBrief({...brief,talent:e.target.value})}/></FormField><FormField label={zh?'拍摄负责人':'Shooter'}><Select value={brief.shooter} onChange={e=>setBrief({...brief,shooter:e.target.value})}><option value="">{zh?'未分配':'Unassigned'}</option>{people.map(p=><option key={p.user_profile_id} value={p.user_profile_id}>{p.display_name}</option>)}</Select></FormField><FormField label={zh?'拍摄日期':'Shoot Date'}><Input type="date" value={brief.shootDate} onChange={e=>setBrief({...brief,shootDate:e.target.value})}/></FormField><FormField label={zh?'拍摄地点':'Location'}><Input value={brief.location} onChange={e=>setBrief({...brief,location:e.target.value})}/></FormField></div><Button onClick={()=>void save()} disabled={busy}>{busy?<LoaderCircle className="size-4 animate-spin"/>:<Save className="size-4"/>}{zh?'保存拍摄简报':'Save Shooting Brief'}</Button></div>
 }

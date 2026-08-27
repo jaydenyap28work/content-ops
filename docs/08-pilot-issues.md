@@ -154,3 +154,23 @@ Record each real task with:
 - Calendar production check: seven LKSoft September 2026 PLAN entries returned on the expected dates; the converted 2026-09-02 Idea is represented by its linked Content only.
 - Access boundary: authenticated Super Admin can read the authorized Calendar; anon execution is denied at the function grant boundary.
 - Responsive contracts: desktop month Calendar, mobile Agenda, desktop Planner, compact mobile Idea rows, mobile drawer/navigation are implemented; final device usability remains a live Pilot observation item.
+
+## Production UX + UI Upgrade (2026-08-27)
+
+| Pilot issue | Status | Resolution / verification boundary |
+|---|---|---|
+| Content Plan vs Content unclear | Resolved after local verification | Content Plan is planning-only. `Content` is renamed `Production Center` and defaults to an execution Kanban. Converted Ideas show one planning record plus linked production status and action. |
+| Dashboard cannot see next week | Resolved after local verification | Workbench supports Today, next 7 days, next week, 14 days, and this month. Date-boundary unit tests include a Friday-to-next-week case. |
+| English statuses in Chinese UI | Resolved for upgraded daily-work surfaces | Idea, production, publication, priority, and Calendar event values remain English in the database and render through locale-specific labels. |
+| LKSoft incorrectly modeled as Client | Resolved and production-verified | M13 classifies LKSoft in place as the default `internal_brand`. Production verification confirmed the original seven Idea/Content pairs, dates, Content Codes, Shooting Briefs and provenance remained intact. The legacy `clients` table remains only as the existing RLS/FK compatibility boundary; Clients UI excludes Internal Brands. |
+| Content Detail desktop too narrow | Resolved after local verification | Content Detail is a full route with a sticky summary, wide Shooting Brief reading area, and execution sidebar. Drawers remain for quick edit/preview tasks. |
+| Shooting Brief edit-form-first | Resolved after local verification | Shooting Brief defaults to fully expanded reading mode. Editing controls appear only after `Edit Shooting Brief`. |
+| Chinese/English mixed labels | Improved; deep legacy workflow live review remains | Newly upgraded daily-work, production, shooting, Calendar, and shell surfaces no longer show bilingual field labels in Chinese mode. A final authenticated live walkthrough must still flag any legacy deep-form exception. |
+| Need tablet Boss Mode / Teleprompter | Resolved after local verification | Full-screen Boss Mode hides operations UI, supports Q&A navigation, touch swipe and arrow keys. Teleprompter provides auto-scroll, speed, font, line height, theme, pause/resume, fullscreen, and mirror controls. |
+
+### Preservation decisions
+
+- Creator remains immutable historical attribution; Owner remains the editable operating responsibility.
+- Existing bulk actions remain limited to Owner, Planned Date, Priority, Category, and Tags. Workflow state is never bulk-edited.
+- Calendar remains derived from planning, shooting, review workflow events, and publications. Converted Ideas continue to deduplicate against linked Content.
+- M13 performs an in-place ownership classification only. Content Code, planned dates, Shooting Briefs, provenance, workflow history, approvals, revisions, publications, and analytics remain on their original records.

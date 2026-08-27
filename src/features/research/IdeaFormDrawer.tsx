@@ -84,7 +84,7 @@ function initialForm(
   if (!idea) {
     return {
       ...emptyForm,
-      clientId: catalog.clients[0]?.id ?? '',
+      clientId: catalog.clients.find((client) => client.is_default_brand)?.id ?? catalog.clients[0]?.id ?? '',
       ownerUserId: currentUserId,
     }
   }

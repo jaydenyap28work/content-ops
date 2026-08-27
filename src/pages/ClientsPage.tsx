@@ -7,12 +7,14 @@ import { useAuth } from '../features/auth/auth-context'
 import { useDevMountCounter } from '../lib/dev-diagnostics'
 import { archiveClient, loadClients, saveClient } from '../features/admin/admin-api'
 import type { ClientRecord } from '../features/admin/admin-api'
+import { useI18n } from '../features/i18n/i18n'
 
 const emptyForm = { name: '', code: '', industry: '', description: '', brandNotes: '' }
 
 export function ClientsPage() {
   useDevMountCounter('ClientsPage')
   const { workspace } = useAuth()
+  const {language}=useI18n(); const zh=language==='zh-CN'
   const navigate = useNavigate()
   const [clients, setClients] = useState<ClientRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +46,7 @@ export function ClientsPage() {
   const visibleClients = useMemo(() => {
     const term = search.trim().toLowerCase()
     return clients.filter((client) => {
+      if (client.ownership_type !== 'external_client') return false
       if (!showArchived && client.status === 'archived') return false
       return !term || [client.name, client.code, client.industry ?? ''].some((value) => value.toLowerCase().includes(term))
     })
@@ -91,11 +94,11 @@ export function ClientsPage() {
     <div className="page-enter space-y-6">
       <header className="flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">Administration / Clients</p>
-          <h2 className="mt-2 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">Client boundaries, made explicit.</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-ink-soft">Create and maintain the Client records that will scope every later operational workflow.</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">{zh?'管理':'Management'}</p>
+          <h2 className="mt-2 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{zh?'外部客户':'External Clients'}</h2>
+          <p className="mt-3 max-w-2xl leading-7 text-ink-soft">{zh?'这里仅管理未来真正委托 LKSoft 制作内容的外部客户。LKSoft 本身属于内部品牌。':'Manage external customers whose work is delivered by LKSoft. LKSoft itself is an Internal Brand.'}</p>
         </div>
-        {canManage ? <Button onClick={() => openEditor(null)}><Plus className="size-4" />New Client</Button> : null}
+        {canManage ? <Button onClick={() => openEditor(null)}><Plus className="size-4" />{zh?'新增客户':'New Client'}</Button> : null}
       </header>
 
       {error ? <div role="alert" className="rounded-lg border border-coral/30 bg-coral/8 px-4 py-3 text-sm text-coral-dark">{error}</div> : null}
@@ -115,7 +118,7 @@ export function ClientsPage() {
         <Card className="grid min-h-48 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></Card>
       ) : visibleClients.length === 0 ? (
         <Card className="grid min-h-64 place-items-center text-center">
-          <div><Building2 className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">No matching Clients</h3><p className="mt-2 text-sm text-ink-muted">Create the first Client or adjust the current filters.</p></div>
+          <div><Building2 className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">{zh?'目前还没有外部客户':'No external Clients yet'}</h3><p className="mt-2 text-sm text-ink-muted">{zh?'未来替其他品牌或老板管理内容时，可在这里建立客户。':'Create a Client here when LKSoft begins managing content for another brand or founder.'}</p></div>
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

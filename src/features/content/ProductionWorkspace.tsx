@@ -30,6 +30,8 @@ import type {
   WorkflowEventRecord,
 } from './workflow-api'
 import type { ContributionRoleRecord, ContributorOption } from '../research/research-api'
+import { useI18n } from '../i18n/i18n'
+import { enumLabel, formatWorkspaceDate } from '../i18n/labels'
 
 interface ProductionWorkspaceProps {
   workspaceId: string
@@ -111,15 +113,16 @@ function activityContext(item: ActivityLogRecord) {
   return 'Management change recorded'
 }
 
-function TimelineEvent({ event }: { event: WorkflowEventRecord }) {
+function TimelineEvent({ event, language }: { event: WorkflowEventRecord; language:'zh-CN'|'en' }) {
+  const zh=language==='zh-CN';const zhEvents:Record<string,string>={marked_ready_to_shoot:'标记待拍摄',shoot_started:'开始拍摄',shoot_completed:'完成拍摄',editing_started:'开始剪辑'}
   return (
     <li className="relative grid gap-1 pl-8 before:absolute before:left-[0.42rem] before:top-6 before:h-[calc(100%+0.5rem)] before:w-px before:bg-line last:before:hidden">
       <span className="absolute left-0 top-1.5 grid size-3.5 place-items-center rounded-full border-2 border-paper bg-coral shadow-[0_0_0_1px_var(--color-coral)]" />
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-bold">{eventLabels[event.event_type] ?? label(event.event_type)}</p>
+        <p className="font-bold">{zh?(zhEvents[event.event_type]??enumLabel(event.event_type,language)):(eventLabels[event.event_type]??label(event.event_type))}</p>
         <time className="font-mono text-[0.68rem] text-ink-faint">{formatDate(event.occurred_at)}</time>
       </div>
-      <p className="text-xs text-ink-muted">{event.actor_name} · {label(event.from_state)} → {label(event.to_state)}</p>
+      <p className="text-xs text-ink-muted">{event.actor_name} · {enumLabel(event.from_state,language)} → {enumLabel(event.to_state,language)}</p>
       {event.notes ? <p className="mt-1 rounded-md border border-line bg-canvas-raised px-3 py-2 text-sm leading-6">{event.notes}</p> : null}
     </li>
   )
@@ -134,6 +137,7 @@ export function ProductionWorkspace({
   canManage,
   onChanged,
 }: ProductionWorkspaceProps) {
+  const {language}=useI18n(); const zh=language==='zh-CN'
   const [note, setNote] = useState('')
   const [schedule, setSchedule] = useState(() => toLocalInput(bundle.production.shoot_scheduled_at))
   const [people, setPeople] = useState<ContributorOption[]>([])
@@ -161,6 +165,9 @@ export function ProductionWorkspace({
   const activeContributors = bundle.contributors.filter((item) => item.status === 'active')
   const historicalContributors = bundle.contributors.filter((item) => item.status === 'removed')
   const nextAction = actionByStatus[content.current_status]
+  const actionCopy=nextAction?({mark_ready_to_shoot:['待拍摄','确认拍摄简报已准备好，可交给拍摄团队。'],start_shooting:['开始拍摄','记录实际开始时间；只有已分配的拍摄负责人可执行。'],complete_shooting:['完成拍摄','记录完成时间；不强制立即填写素材位置。'],start_editing:['开始剪辑','记录实际剪辑开始时间；只有已分配的剪辑负责人可执行。']} as Record<string,[string,string]>)[nextAction.action]:null
+  const nextActionLabel=zh&&actionCopy?actionCopy[0]:nextAction?.label
+  const nextActionSupport=zh&&actionCopy?actionCopy[1]:nextAction?.support
   const assignedShooter = activeContributors.some((item) => item.user_profile_id === currentUserId && item.contribution_role_code === 'shooter')
   const assignedEditor = activeContributors.some((item) => item.user_profile_id === currentUserId && item.contribution_role_code === 'editor')
   const canExecute = !nextAction ? false
@@ -170,11 +177,11 @@ export function ProductionWorkspace({
         : workspaceRoles.includes('Editor') && assignedEditor
 
   const productionMilestones = useMemo(() => [
-    ['Shoot scheduled', bundle.production.shoot_scheduled_at],
-    ['Shooting started', bundle.production.shooting_started_at],
-    ['Shooting completed', bundle.production.shooting_completed_at],
-    ['Editing started', bundle.production.editing_started_at],
-  ], [bundle.production])
+    [zh?'计划拍摄':'Shoot scheduled', bundle.production.shoot_scheduled_at],
+    [zh?'开始拍摄':'Shooting started', bundle.production.shooting_started_at],
+    [zh?'完成拍摄':'Shooting completed', bundle.production.shooting_completed_at],
+    [zh?'开始剪辑':'Editing started', bundle.production.editing_started_at],
+  ], [bundle.production, zh])
 
   async function runAction() {
     if (!nextAction) return
@@ -221,38 +228,38 @@ export function ProductionWorkspace({
       <Card className="overflow-hidden p-0">
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <section className="p-5 sm:p-6">
-            <div className="flex items-center gap-2"><CircleDot className="size-4 text-coral" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Primary workflow action</p></div>
-            {nextAction ? <div className="mt-5"><div className="flex items-start gap-4"><div className="grid size-11 shrink-0 place-items-center rounded-lg bg-ink text-paper"><nextAction.icon className="size-5 text-coral-light" /></div><div><h3 className="font-display text-2xl font-semibold">{nextAction.label}</h3><p className="mt-1 max-w-xl text-sm leading-6 text-ink-muted">{nextAction.support}</p></div></div><Textarea className="mt-5 min-h-20" aria-label="Workflow action note" placeholder="Optional execution note…" value={note} onChange={(event) => setNote(event.target.value)} /><div className="mt-4 flex flex-wrap items-center gap-3"><Button size="lg" disabled={!canExecute || busy !== null} onClick={() => void runAction()}>{busy === 'action' ? <LoaderCircle className="size-4 animate-spin" /> : <nextAction.icon className="size-4" />}{nextAction.label}</Button>{!canExecute ? <p className="max-w-md text-xs leading-5 text-coral-dark">This action is locked until your role and active Content assignment satisfy the permission matrix.</p> : null}</div></div> : <div className="mt-5 rounded-lg border border-dashed border-line-strong p-5"><p className="font-bold">Phase 6 workflow complete</p><p className="mt-2 text-sm leading-6 text-ink-muted">The next transition begins with First Cut and Review in Phase 7.</p></div>}
+            <div className="flex items-center gap-2"><CircleDot className="size-4 text-coral" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'主要流程动作':'Primary workflow action'}</p></div>
+            {nextAction ? <div className="mt-5"><div className="flex items-start gap-4"><div className="grid size-11 shrink-0 place-items-center rounded-lg bg-ink text-paper"><nextAction.icon className="size-5 text-coral-light" /></div><div><h3 className="font-display text-2xl font-semibold">{nextActionLabel}</h3><p className="mt-1 max-w-xl text-sm leading-6 text-ink-muted">{nextActionSupport}</p></div></div><Textarea className="mt-5 min-h-20" aria-label="Workflow action note" placeholder={zh?'执行备注（选填）':'Optional execution note…'} value={note} onChange={(event) => setNote(event.target.value)} /><div className="mt-4 flex flex-wrap items-center gap-3"><Button size="lg" disabled={!canExecute || busy !== null} onClick={() => void runAction()}>{busy === 'action' ? <LoaderCircle className="size-4 animate-spin" /> : <nextAction.icon className="size-4" />}{nextActionLabel}</Button>{!canExecute ? <p className="max-w-md text-xs leading-5 text-coral-dark">{zh?'你的角色与当前内容分配尚未符合权限要求。':'This action is locked until your role and active Content assignment satisfy the permission matrix.'}</p> : null}</div></div> : <div className="mt-5 rounded-lg border border-dashed border-line-strong p-5"><p className="font-bold">Phase 6 workflow complete</p><p className="mt-2 text-sm leading-6 text-ink-muted">The next transition begins with First Cut and Review in Phase 7.</p></div>}
           </section>
-          <aside className="border-t border-line bg-canvas-raised p-5 lg:border-l lg:border-t-0"><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Current stage</p><p className="mt-3 font-display text-2xl font-semibold">{label(content.current_status)}</p><p className="mt-2 text-xs leading-5 text-ink-muted">Status is read-only metadata. Only a valid workflow action can update it.</p></aside>
+          <aside className="border-t border-line bg-canvas-raised p-5 lg:border-l lg:border-t-0"><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'当前阶段':'Current stage'}</p><p className="mt-3 font-display text-2xl font-semibold">{enumLabel(content.current_status,language)}</p><p className="mt-2 text-xs leading-5 text-ink-muted">{zh?'状态只能由合法流程动作更新，不能任意选择。':'Status is read-only metadata. Only a valid workflow action can update it.'}</p></aside>
         </div>
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
-          <div className="flex items-center gap-2"><CalendarClock className="size-4 text-blue" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Production dates</p></div>
-          {canManage ? <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><FormField className="flex-1" label="Shoot scheduled at" htmlFor="shoot-scheduled-at" hint="Planning time; actual timestamps are recorded by actions."><Input id="shoot-scheduled-at" type="datetime-local" value={schedule} onChange={(event) => setSchedule(event.target.value)} /></FormField><Button variant="secondary" disabled={busy !== null} onClick={() => void saveSchedule()}>{busy === 'schedule' ? <LoaderCircle className="size-4 animate-spin" /> : null}Save schedule</Button></div> : null}
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">{productionMilestones.map(([term, value]) => <div key={term} className="rounded-md border border-line p-3"><dt className="text-[0.68rem] font-bold uppercase tracking-wider text-ink-faint">{term}</dt><dd className="mt-1.5 text-sm font-semibold">{formatDate(value)}</dd></div>)}</dl>
+          <div className="flex items-center gap-2"><CalendarClock className="size-4 text-blue" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'制作日期':'Production dates'}</p></div>
+          {canManage ? <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><FormField className="flex-1" label={zh?'计划拍摄时间':'Shoot scheduled at'} htmlFor="shoot-scheduled-at" hint={zh?'这是计划时间；实际时间由流程动作自动记录。':'Planning time; actual timestamps are recorded by actions.'}><Input id="shoot-scheduled-at" type="datetime-local" value={schedule} onChange={(event) => setSchedule(event.target.value)} /></FormField><Button variant="secondary" disabled={busy !== null} onClick={() => void saveSchedule()}>{busy === 'schedule' ? <LoaderCircle className="size-4 animate-spin" /> : null}Save schedule</Button></div> : null}
+          <dl className="mt-5 grid gap-4 sm:grid-cols-2">{productionMilestones.map(([term, value]) => <div key={term} className="rounded-md border border-line p-3"><dt className="text-[0.68rem] font-bold uppercase tracking-wider text-ink-faint">{term}</dt><dd className="mt-1.5 text-sm font-semibold">{formatWorkspaceDate(value,language)}</dd></div>)}</dl>
           {content.current_status === 'shot_awaiting_edit' && !bundle.production.shooting_completed_at ? <p className="mt-4 text-xs text-coral-dark">Completion timestamp is pending verification.</p> : null}
           {bundle.production.shooting_completed_at ? <p className="mt-4 text-xs text-ink-muted">Asset location may remain pending after Complete Shooting; it does not block the workflow.</p> : null}
         </Card>
 
         <Card>
-          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><UserRoundCheck className="size-4 text-gold" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Contributors</p></div><StatusBadge>{activeContributors.length} active</StatusBadge></div>
-          <div className="mt-5 space-y-3">{activeContributors.length ? activeContributors.map((contributor) => <div key={contributor.id} className="flex items-start justify-between gap-3 rounded-md border border-line p-3"><div><p className="font-bold">{contributor.display_name}</p><p className="mt-1 text-xs text-ink-muted">{contributor.contribution_role_name}{contributor.notes ? ` · ${contributor.notes}` : ''}</p></div>{canManage ? <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void remove(contributor)}><UserRoundX className="size-3.5" />Remove</Button> : null}</div>) : <p className="rounded-md border border-dashed border-line-strong p-4 text-sm text-ink-muted">No active contributor assignments.</p>}</div>
+          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><UserRoundCheck className="size-4 text-gold" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'协作人员':'Contributors'}</p></div><StatusBadge>{activeContributors.length} active</StatusBadge></div>
+          <div className="mt-5 space-y-3">{activeContributors.length ? activeContributors.map((contributor) => <div key={contributor.id} className="flex items-start justify-between gap-3 rounded-md border border-line p-3"><div><p className="font-bold">{contributor.display_name}</p><p className="mt-1 text-xs text-ink-muted">{contributor.contribution_role_name}{contributor.notes ? ` · ${contributor.notes}` : ''}</p></div>{canManage ? <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void remove(contributor)}><UserRoundX className="size-3.5" />{zh?'移除':'Remove'}</Button> : null}</div>) : <p className="rounded-md border border-dashed border-line-strong p-4 text-sm text-ink-muted">{zh?'还没有分配协作人员。':'No active contributor assignments.'}</p>}</div>
           {historicalContributors.length ? <details className="mt-4 border-t border-line pt-4"><summary className="cursor-pointer text-xs font-bold text-ink-muted">Removed history · {historicalContributors.length}</summary><div className="mt-3 space-y-2">{historicalContributors.map((item) => <p key={item.id} className="text-xs text-ink-muted">{item.display_name} · {item.contribution_role_name} · removed {formatDate(item.removed_at)}</p>)}</div></details> : null}
-          {canManage ? <form className="mt-5 grid gap-3 border-t border-line pt-5" onSubmit={assign}><div className="grid gap-3 sm:grid-cols-2"><FormField label="Person" htmlFor="contributor-person"><Select id="contributor-person" value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>{people.map((person) => <option key={person.user_profile_id} value={person.user_profile_id}>{person.display_name}</option>)}</Select></FormField><FormField label="Contribution role" htmlFor="contributor-role"><Select id="contributor-role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></FormField></div><Input aria-label="Contributor notes" placeholder="Optional assignment context" value={contributorNotes} onChange={(event) => setContributorNotes(event.target.value)} /><Button className="justify-self-start" type="submit" disabled={busy !== null || !selectedUser || !selectedRole}>{busy === 'assign' ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />}Assign contributor</Button></form> : null}
+          {canManage ? <form className="mt-5 grid gap-3 border-t border-line pt-5" onSubmit={assign}><div className="grid gap-3 sm:grid-cols-2"><FormField label={zh?'人员':'Person'} htmlFor="contributor-person"><Select id="contributor-person" value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>{people.map((person) => <option key={person.user_profile_id} value={person.user_profile_id}>{person.display_name}</option>)}</Select></FormField><FormField label={zh?'协作角色':'Contribution role'} htmlFor="contributor-role"><Select id="contributor-role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</Select></FormField></div><Input aria-label="Contributor notes" placeholder={zh?'分配说明（选填）':'Optional assignment context'} value={contributorNotes} onChange={(event) => setContributorNotes(event.target.value)} /><Button className="justify-self-start" type="submit" disabled={busy !== null || !selectedUser || !selectedRole}>{busy === 'assign' ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />}Assign contributor</Button></form> : null}
         </Card>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
         <Card>
-          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><History className="size-4 text-coral" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Production timeline</p></div><StatusBadge tone="info">Immutable</StatusBadge></div>
-          {bundle.events.length ? <ol className="mt-6 space-y-6">{bundle.events.map((event) => <TimelineEvent key={event.id} event={event} />)}</ol> : <div className="mt-5 rounded-lg border border-dashed border-line-strong p-6 text-center"><Clock3 className="mx-auto size-6 text-ink-faint" /><p className="mt-3 font-bold">No workflow events yet</p><p className="mt-1 text-sm text-ink-muted">The first legal action will start this immutable timeline.</p></div>}
+          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><History className="size-4 text-coral" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'制作时间线':'Production timeline'}</p></div><StatusBadge tone="info">Immutable</StatusBadge></div>
+          {bundle.events.length ? <ol className="mt-6 space-y-6">{bundle.events.map((event) => <TimelineEvent key={event.id} event={event} language={language} />)}</ol> : <div className="mt-5 rounded-lg border border-dashed border-line-strong p-6 text-center"><Clock3 className="mx-auto size-6 text-ink-faint" /><p className="mt-3 font-bold">No workflow events yet</p><p className="mt-1 text-sm text-ink-muted">The first legal action will start this immutable timeline.</p></div>}
         </Card>
 
         <Card tone="quiet">
-          <div className="flex items-center gap-2"><Clock3 className="size-4 text-blue" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">Internal activity</p></div>
+          <div className="flex items-center gap-2"><Clock3 className="size-4 text-blue" /><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-ink-faint">{zh?'内部 Activity':'Internal activity'}</p></div>
           <p className="mt-2 text-xs leading-5 text-ink-muted">Management and data changes are separate from production transitions.</p>
           {bundle.activity.length ? <ul className="mt-5 space-y-4">{bundle.activity.map((item) => <li key={item.id} className="border-l-2 border-blue/35 pl-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-bold">{activityLabels[item.action] ?? label(item.action)}</p><time className="font-mono text-[0.65rem] text-ink-faint">{formatDate(item.occurred_at)}</time></div><p className="mt-1 text-xs text-ink-muted">{item.actor_name} · {activityContext(item)}</p></li>)}</ul> : <p className="mt-5 rounded-md border border-dashed border-line-strong p-4 text-sm text-ink-muted">No management activity recorded in M06 yet.</p>}
         </Card>

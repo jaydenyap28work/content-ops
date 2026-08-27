@@ -6,12 +6,13 @@ import { useAuth } from '../features/auth/auth-context'
 import { IdeaConversionDrawer } from '../features/content/IdeaConversionDrawer'
 import { IdeaFormDrawer } from '../features/research/IdeaFormDrawer'
 import { IdeaBoardView, IdeaPlannerView } from '../features/research/IdeaPlannerView'
-import { filterPlannerIdeas, formatPlannedDate, getDisplayedProductionStatus, getNextActionLabel, ideaStatusLabels } from '../features/research/idea-planner'
+import { filterPlannerIdeas, getDisplayedProductionStatus, getNextActionLabel, ideaStatusLabels } from '../features/research/idea-planner'
 import { changeIdeaStatus, loadIdeas, loadReferences, loadResearchCatalog } from '../features/research/research-api'
 import type { IdeaRecord, IdeaStatus, ReferenceRecord, ResearchCatalog } from '../features/research/research-api'
 import { useDevMountCounter } from '../lib/dev-diagnostics'
-import { ShootingBrief } from '../features/pilot/ShootingBrief'
 import { bulkUpdateIdeas, generateShootingBriefs } from '../features/pilot/pilot-api'
+import { useI18n } from '../features/i18n/i18n'
+import { enumLabel, formatWorkspaceDate } from '../features/i18n/labels'
 import { toShootingBriefGenerationInput } from '../features/pilot/shooting-brief-templates'
 import { loadContributorOptions } from '../features/research/research-api'
 import type { ContributorOption } from '../features/research/research-api'
@@ -38,6 +39,7 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
   onPrimaryAction: () => void
   onTransition: (status: IdeaStatus) => void
 }) {
+  const {language}=useI18n(); const zh=language==='zh-CN'
   const client = catalog.clients.find((item) => item.id === idea.client_id)
   const category = catalog.categories.find((item) => item.id === idea.category_id)
   const linkedStatus = getDisplayedProductionStatus(idea)
@@ -49,7 +51,7 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
       <aside className="flex h-full w-full max-w-xl flex-col border-l border-line bg-paper shadow-2xl" aria-label="Idea details">
         <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-coral">{client?.name ?? 'Client'} / Idea detail</p>
+            <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-coral">{client?.name ?? (zh?'品牌':'Brand')} · {zh?'选题详情':'Idea detail'}</p>
             <h3 className="mt-2 text-xl font-bold leading-7">{idea.title}</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close Idea details"><X className="size-5" /></Button>
@@ -57,10 +59,10 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
 
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           <div className="grid grid-cols-2 gap-x-5 gap-y-4 rounded-xl border border-line bg-canvas-raised/55 p-4 sm:grid-cols-4">
-            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">Planned Date</p><p className="mt-1.5 text-sm font-bold">{formatPlannedDate(idea.planned_date)}</p></div>
-            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">Category</p><p className="mt-1.5 text-sm font-bold">{category?.name ?? '—'}</p></div>
-            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">Priority</p><div className="mt-1.5"><StatusBadge>{idea.priority}</StatusBadge></div></div>
-            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">Status</p><div className="mt-1.5 flex flex-wrap gap-1"><StatusBadge tone={statusTone(idea.status)}>{ideaStatusLabels[idea.status]}</StatusBadge>{linkedStatus ? <StatusBadge tone="warning">{linkedStatus}</StatusBadge> : null}</div></div>
+            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">{zh?'计划日期':'Planned Date'}</p><p className="mt-1.5 text-sm font-bold">{formatWorkspaceDate(idea.planned_date,language)}</p></div>
+            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">{zh?'分类':'Category'}</p><p className="mt-1.5 text-sm font-bold">{category?.name ?? '—'}</p></div>
+            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">{zh?'优先级':'Priority'}</p><div className="mt-1.5"><StatusBadge>{idea.priority}</StatusBadge></div></div>
+            <div><p className="text-[0.65rem] font-extrabold uppercase tracking-wider text-ink-faint">{zh?'策划状态':'Status'}</p><div className="mt-1.5 flex flex-wrap gap-1"><StatusBadge tone={statusTone(idea.status)}>{enumLabel(idea.status,language)}</StatusBadge>{linkedStatus ? <StatusBadge tone="warning">{idea.linked_content_status?enumLabel(idea.linked_content_status,language):linkedStatus}</StatusBadge> : null}</div></div>
           </div>
 
           <section className="mt-6 space-y-5">
@@ -71,11 +73,9 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
           <div className="mt-6 rounded-xl border border-coral/20 bg-coral/[0.045] p-4">
             <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-coral-dark">Primary Action</p>
             <Button className="mt-3 w-full justify-between" disabled={busy || (idea.status === 'converted' && !idea.linked_content_id)} onClick={onPrimaryAction}>
-              {getNextActionLabel(idea)}<ArrowRight className="size-4" />
+              {idea.status==='converted'?(zh?'打开制作内容':'Open Production Content'):getNextActionLabel(idea)}<ArrowRight className="size-4" />
             </Button>
           </div>
-
-          {idea.status==='approved'||idea.status==='converted'?<div className="mt-6"><ShootingBrief idea={idea} references={references}/></div>:null}
 
           <details className="mt-6 rounded-xl border border-line bg-paper">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-bold"><span className="inline-flex items-center gap-2"><MoreHorizontal className="size-4 text-coral" />More details</span><span className="text-xs text-ink-faint">Sources · Contributors · Notes</span></summary>
@@ -109,6 +109,7 @@ function IdeaDetailDrawer({ idea, catalog, references, busy, onClose, onEdit, on
 export function IdeasPage() {
   useDevMountCounter('IdeasPage')
   const { workspace } = useAuth()
+  const {language}=useI18n(); const zh=language==='zh-CN'
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [catalog, setCatalog] = useState<ResearchCatalog>({ clients: [], platforms: [], categories: [], contributionRoles: [] })
@@ -187,29 +188,29 @@ export function IdeasPage() {
   return (
     <div className="page-enter space-y-5" aria-busy={busy}>
       <header className="flex flex-col gap-4 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">日常工作 / Content Plan</p><h2 className="mt-1.5 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">内容计划</h2><p className="mt-2 text-sm text-ink-muted">一眼查看排期、负责人、状态与下一步，不需要逐条打开。</p></div>
-        <Button onClick={() => setEditing(null)}><Plus className="size-4" />新增选题</Button>
+        <div><p className="text-xs font-extrabold uppercase tracking-[0.22em] text-coral">{zh?'日常工作':'Daily Work'}</p><h2 className="mt-1.5 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{zh?'内容计划':'Content Plan'}</h2><p className="mt-2 text-sm text-ink-muted">{zh?'一眼查看排期、负责人、状态与下一步，不需要逐条打开。':'Scan dates, owners, status, and next actions without opening every record.'}</p></div>
+        <Button onClick={() => setEditing(null)}><Plus className="size-4" />{zh?'新增选题':'New Idea'}</Button>
       </header>
 
       {error ? <div role="alert" className="rounded-lg border border-coral/30 bg-coral/8 px-4 py-3 text-sm text-coral-dark">{error}</div> : null}
       {notice ? <div className="rounded-lg border border-green/25 bg-green/8 px-4 py-3 text-sm text-green">{notice}</div> : null}
 
-      <div className="flex gap-2 overflow-x-auto border-b border-line pb-3">{statuses.map((status) => <button key={status.value} type="button" onClick={() => setStatusFilter(status.value)} className={'rounded-full border px-3.5 py-2 text-xs font-extrabold uppercase tracking-wider ' + (statusFilter === status.value ? 'border-ink bg-ink text-white' : 'border-line bg-paper text-ink-muted hover:border-ink/30')}>{status.label}<span className="ml-2 opacity-55">{status.value === 'all' ? ideas.length : ideas.filter((idea) => idea.status === status.value).length}</span></button>)}</div>
+      <div className="flex gap-2 overflow-x-auto border-b border-line pb-3">{statuses.map((status) => <button key={status.value} type="button" onClick={() => setStatusFilter(status.value)} className={'rounded-full border px-3.5 py-2 text-xs font-extrabold uppercase tracking-wider ' + (statusFilter === status.value ? 'border-ink bg-ink text-white' : 'border-line bg-paper text-ink-muted hover:border-ink/30')}>{status.value==='all'?(zh?'全部':'All'):enumLabel(status.value,language)}<span className="ml-2 opacity-55">{status.value === 'all' ? ideas.length : ideas.filter((idea) => idea.status === status.value).length}</span></button>)}</div>
 
       <Card className="p-3.5">
         <div className="grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(3,minmax(9rem,auto))_auto]">
-          <label className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, angle, tag" className="pl-10" /></label>
-          <Select aria-label="Filter by Client" value={clientFilter} onChange={(event) => setClientFilter(event.target.value)}><option value="all">All Clients</option>{catalog.clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select>
+          <label className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={zh?'搜索标题、方向或标签':'Search title, angle, or tag'} className="pl-10" /></label>
+          <Select aria-label="Filter by ownership" value={clientFilter} onChange={(event) => setClientFilter(event.target.value)}><option value="all">All Clients</option>{catalog.clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select>
           <Select aria-label="Filter by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{catalog.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</Select>
           <Select aria-label="Filter by source" value={referenceFilter} onChange={(event) => setReferenceFilter(event.target.value as 'all' | 'with' | 'without')}><option value="all">Any source</option><option value="with">Has Reference</option><option value="without">No Reference</option></Select>
           <div className="inline-flex rounded-lg border border-line bg-canvas-raised p-1" aria-label="Idea view">
-            <button type="button" onClick={() => setView('planner')} className={'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-bold ' + (view === 'planner' ? 'bg-paper text-ink shadow-sm' : 'text-ink-muted')}><LayoutList className="size-4" />Planner</button>
-            <button type="button" onClick={() => setView('board')} className={'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-bold ' + (view === 'board' ? 'bg-paper text-ink shadow-sm' : 'text-ink-muted')}><Columns3 className="size-4" />Board</button>
+            <button type="button" onClick={() => setView('planner')} className={'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-bold ' + (view === 'planner' ? 'bg-paper text-ink shadow-sm' : 'text-ink-muted')}><LayoutList className="size-4" />{zh?'计划表':'Planner'}</button>
+            <button type="button" onClick={() => setView('board')} className={'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-bold ' + (view === 'board' ? 'bg-paper text-ink shadow-sm' : 'text-ink-muted')}><Columns3 className="size-4" />{zh?'看板':'Board'}</button>
           </div>
         </div>
       </Card>
 
-      {selectedIds.length?<Card className="flex flex-col gap-3 border-coral/25 bg-coral/[.035] p-3 sm:flex-row sm:flex-wrap sm:items-center"><p className="text-sm font-bold">已选择 {selectedIds.length} 条</p><Select value={bulkField} onChange={e=>{setBulkField(e.target.value as typeof bulkField);setBulkValue('')}} className="sm:w-44"><option value="owner">Assign Owner</option><option value="planned_date">Planned Date</option><option value="priority">Priority</option><option value="category">Category</option><option value="tags">Tags</option></Select>{bulkField==='owner'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} disabled={clientFilter==='all'} className="sm:w-52"><option value="">{clientFilter==='all'?'先筛选单一 Client':'Choose Owner'}</option>{ownerOptions.map(option=><option key={option.user_profile_id} value={option.user_profile_id}>{option.display_name}</option>)}</Select>:bulkField==='priority'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-40"><option value="">Choose</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></Select>:bulkField==='category'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-52"><option value="">Choose Category</option>{catalog.categories.map(category=><option key={category.id} value={category.id}>{category.name}</option>)}</Select>:<Input type={bulkField==='planned_date'?'date':'text'} placeholder={bulkField==='tags'?'Comma-separated tags':''} value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:max-w-xs"/>}<Button size="sm" onClick={()=>void applyBulk()} disabled={busy||!bulkValue}>Apply</Button><Button size="sm" variant="secondary" onClick={()=>void generateSelectedBriefs()} disabled={busy}><Sparkles className="size-4"/>批量生成拍摄简报</Button><Button size="sm" variant="ghost" onClick={()=>setSelectedIds([])}>Clear</Button></Card>:null}
+      {selectedIds.length?<Card className="flex flex-col gap-3 border-coral/25 bg-coral/[.035] p-3 sm:flex-row sm:flex-wrap sm:items-center"><p className="text-sm font-bold">已选择 {selectedIds.length} 条</p><Select value={bulkField} onChange={e=>{setBulkField(e.target.value as typeof bulkField);setBulkValue('')}} className="sm:w-44"><option value="owner">Assign Owner</option><option value="planned_date">{zh?'计划日期':'Planned Date'}</option><option value="priority">{zh?'优先级':'Priority'}</option><option value="category">{zh?'分类':'Category'}</option><option value="tags">Tags</option></Select>{bulkField==='owner'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} disabled={clientFilter==='all'} className="sm:w-52"><option value="">{clientFilter==='all'?'先筛选单一 Client':'Choose Owner'}</option>{ownerOptions.map(option=><option key={option.user_profile_id} value={option.user_profile_id}>{option.display_name}</option>)}</Select>:bulkField==='priority'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-40"><option value="">Choose</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></Select>:bulkField==='category'?<Select value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:w-52"><option value="">Choose Category</option>{catalog.categories.map(category=><option key={category.id} value={category.id}>{category.name}</option>)}</Select>:<Input type={bulkField==='planned_date'?'date':'text'} placeholder={bulkField==='tags'?'Comma-separated tags':''} value={bulkValue} onChange={e=>setBulkValue(e.target.value)} className="sm:max-w-xs"/>}<Button size="sm" onClick={()=>void applyBulk()} disabled={busy||!bulkValue}>Apply</Button><Button size="sm" variant="secondary" onClick={()=>void generateSelectedBriefs()} disabled={busy}><Sparkles className="size-4"/>批量生成拍摄简报</Button><Button size="sm" variant="ghost" onClick={()=>setSelectedIds([])}>Clear</Button></Card>:null}
 
       <Card className="overflow-hidden p-0">
         {loading ? <div className="grid min-h-72 place-items-center"><LoaderCircle className="size-6 animate-spin text-coral" /></div> : filtered.length === 0 ? <div className="grid min-h-72 place-items-center text-center"><div><Lightbulb className="mx-auto size-8 text-ink-faint" /><h3 className="mt-4 font-display text-2xl font-semibold">No matching Ideas</h3><p className="mt-2 text-sm text-ink-muted">Capture a new angle or clear a filter.</p></div></div> : view === 'planner' ? <IdeaPlannerView ideas={filtered} catalog={catalog} selectedIds={selectedIds} onToggle={(ideaId,checked)=>setSelectedIds(current=>checked?[...current,ideaId]:current.filter(id=>id!==ideaId))} onSelect={(idea) => setSelectedId(idea.id)} /> : <IdeaBoardView ideas={filtered} onSelect={(idea) => setSelectedId(idea.id)} />}

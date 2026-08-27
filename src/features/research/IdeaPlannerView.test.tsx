@@ -3,6 +3,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { IdeaPlannerView } from './IdeaPlannerView'
+import { I18nProvider } from '../i18n/i18n'
 import type { IdeaRecord, ResearchCatalog } from './research-api'
 
 const catalog: ResearchCatalog = { clients: [], platforms: [], categories: [], contributionRoles: [] }
@@ -17,11 +18,11 @@ const row = {
 
 describe('IdeaPlannerView responsive structure', () => {
   it('uses a dense desktop table and separate compact mobile rows', () => {
-    render(<IdeaPlannerView ideas={[row]} catalog={catalog} onSelect={vi.fn()} />)
+    render(<I18nProvider><IdeaPlannerView ideas={[row]} catalog={catalog} onSelect={vi.fn()} /></I18nProvider>)
     expect(screen.getByTestId('idea-planner-desktop').className).toContain('hidden')
     expect(screen.getByTestId('idea-planner-desktop').className).toContain('lg:block')
     expect(screen.getByTestId('idea-planner-mobile').className).toContain('lg:hidden')
-    expect(screen.getByRole('columnheader', { name: 'Planned Date' })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: '计划日期' })).toBeTruthy()
     expect(screen.getAllByText('Mobile planning row')).toHaveLength(2)
   })
 })

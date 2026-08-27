@@ -3,7 +3,7 @@ import type{AppRouteDefinition,NavigationSection}from'../types/navigation'
 export const routeDefinitions:AppRouteDefinition[]=[
 {path:'/',title:'工作台',navigationLabel:'工作台',description:'今天与本周需要推进的内容。',foundationNote:'由真实排期与 workflow records 派生。',phase:'V0.1 Pilot',section:'Daily Work',icon:LayoutDashboard},
 {path:'/ideas',title:'内容计划',navigationLabel:'内容计划',description:'Planner-first 选题与制作计划。',foundationNote:'选题、负责人、排期与来源。',phase:'V0.1 Pilot',section:'Daily Work',icon:Lightbulb},
-{path:'/content',title:'内容',navigationLabel:'内容',description:'制作 workflow 的核心记录。',foundationNote:'严格状态动作保持不变。',phase:'V0.1 Pilot',section:'Daily Work',icon:FileText},
+{path:'/content',title:'制作中心',navigationLabel:'制作中心',description:'正式制作进度与执行。',foundationNote:'严格状态动作保持不变。',phase:'V0.1 Pilot',section:'Daily Work',icon:FileText},
 {path:'/calendar',title:'日历',navigationLabel:'日历',description:'自动汇总计划、拍摄与发布。',foundationNote:'不建立第二套 event。',phase:'V0.1 Pilot',section:'Daily Work',icon:CalendarDays},
 {path:'/analytics',title:'数据分析',navigationLabel:'数据分析',description:'手动追踪已发布内容表现。',foundationNote:'24h / 7d / 30d。',phase:'V0.1 Pilot',section:'Results',icon:Activity},
 {path:'/clients',title:'客户',navigationLabel:'客户',description:'客户与品牌边界。',foundationNote:'Client-scoped。',phase:'V0.1 Pilot',section:'Management',icon:Building2},

@@ -2,7 +2,7 @@ import {supabase} from '../../lib/supabase'
 import type {IdeaRecord} from '../research/research-api'
 
 function fail(error:{message:string}|null){if(error)throw new Error(error.message)}
-export interface CalendarEvent{event_key:string;event_type:'PLAN'|'SHOOT'|'PUBLISH';event_at:string;title:string;client_name:string;status:string;entity_type:'idea'|'content';entity_id:string}
+export interface CalendarEvent{event_key:string;event_type:'PLAN'|'SHOOT'|'REVIEW'|'PUBLISH';event_at:string;title:string;client_name:string;status:string;entity_type:'idea'|'content';entity_id:string}
 export async function loadCalendarEvents(workspaceId:string,from:string,to:string){const{data,error}=await supabase.rpc('list_calendar_events',{target_workspace_id:workspaceId,target_from:from,target_to:to});fail(error);return(data??[]) as CalendarEvent[]}
 
 export async function bulkUpdateIdeas(ids:string[],field:'owner'|'planned_date'|'priority'|'category'|'tags',values:string[]){const{data,error}=await supabase.rpc('bulk_update_ideas',{target_idea_ids:ids,target_field:field,target_values:values});fail(error);return data as number}
@@ -17,15 +17,27 @@ export async function loadSettings(workspaceId:string,userId:string){const[profi
 export async function saveUserSettings(displayName:string,language:string,timezone:string){const{error}=await supabase.rpc('save_user_preferences',{target_display_name:displayName,target_language:language,target_timezone:timezone});fail(error)}
 export async function saveWorkspaceSettings(workspaceId:string,name:string,timezone:string){const{error}=await supabase.rpc('save_workspace_settings',{target_workspace_id:workspaceId,target_name:name,target_timezone:timezone});fail(error)}
 
-export function deriveDashboard(events:CalendarEvent[],contents:Array<{id:string;title:string;client_id:string;current_status:string}>,now=new Date()){
+export type DashboardRange='today'|'next7'|'nextWeek'|'next14'|'month'
+export function dashboardRangeBounds(range:DashboardRange,now=new Date()){
   const dateInWorkspace=(value:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(value)
-  const today=dateInWorkspace(now);const weekEnd=new Date(now);weekEnd.setDate(weekEnd.getDate()+7);const end=dateInWorkspace(weekEnd)
+  const start=new Date(now);const end=new Date(now)
+  if(range==='next7')end.setDate(end.getDate()+6)
+  if(range==='next14')end.setDate(end.getDate()+13)
+  if(range==='nextWeek'){const day=(start.getDay()+6)%7;start.setDate(start.getDate()-day+7);end.setTime(start.getTime());end.setDate(end.getDate()+6)}
+  if(range==='month'){start.setDate(1);end.setMonth(end.getMonth()+1,0)}
+  return{from:dateInWorkspace(start),to:dateInWorkspace(end)}
+}
+export function deriveDashboard(events:CalendarEvent[],contents:Array<{id:string;title:string;client_id:string;current_status:string}>,now=new Date(),range:DashboardRange='next7'){
+  const bounds=dashboardRangeBounds(range,now)
+  const rangeItems=events.filter((event)=>event.event_at.slice(0,10)>=bounds.from&&event.event_at.slice(0,10)<=bounds.to)
+  const dateInWorkspace=(value:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',year:'numeric',month:'2-digit',day:'2-digit'}).format(value)
+  const today=dateInWorkspace(now);const weekEnd=new Date(now);weekEnd.setDate(weekEnd.getDate()+7);const weekEndText=dateInWorkspace(weekEnd)
   const todayItems=events.filter((event)=>event.event_at.slice(0,10)===today)
-  const weekItems=events.filter((event)=>event.event_at.slice(0,10)>=today&&event.event_at.slice(0,10)<=end)
+  const weekItems=events.filter((event)=>event.event_at.slice(0,10)>=today&&event.event_at.slice(0,10)<=weekEndText)
   const attentionStatuses=new Set(['first_cut_submitted','internal_review','revision_required','client_review'])
   const attention=contents.filter((content)=>attentionStatuses.has(content.current_status))
   const overview=contents.reduce<Record<string,number>>((result,content)=>{result[content.current_status]=(result[content.current_status]??0)+1;return result},{})
-  return{todayItems,weekItems,attention,overview}
+  return{rangeItems,todayItems,weekItems,attention,overview,bounds}
 }
 export function nextIdeaAction(idea:IdeaRecord){if(idea.status==='new')return'evaluating';if(idea.status==='evaluating')return'approved';if(idea.status==='rejected')return'evaluating';return null}
 

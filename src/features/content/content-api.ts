@@ -59,6 +59,10 @@ export interface ContentRecord {
   updated_at: string
   archived_at: string | null
   archive_reason: string | null
+  planned_date: string | null
+  ownership_name: string
+  ownership_type: 'internal_brand' | 'external_client'
+  is_default_brand: boolean
   tags: string[]
   contributors: Array<{ userId: string; roleId: string; notes: string | null }>
 }

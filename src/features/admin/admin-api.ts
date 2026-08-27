@@ -15,6 +15,8 @@ export interface ClientRecord {
   description: string | null
   brand_notes: string | null
   status: 'active' | 'archived'
+  ownership_type?: 'internal_brand' | 'external_client'
+  is_default_brand?: boolean
   created_at: string
   updated_at: string
 }
@@ -50,7 +52,7 @@ export async function loadRoles(workspaceId: string) {
 export async function loadClients(workspaceId: string) {
   const { data, error } = await supabase
     .from('clients')
-    .select('id, workspace_id, name, code, industry, description, brand_notes, status, created_at, updated_at')
+    .select('id, workspace_id, name, code, industry, description, brand_notes, status, ownership_type, is_default_brand, created_at, updated_at')
     .eq('workspace_id', workspaceId)
     .order('name')
   throwIfError(error)

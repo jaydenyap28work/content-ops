@@ -6,10 +6,12 @@ import { TopBar } from './TopBar'
 import { Button } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
 import { devAuthLog, useDevMountCounter } from '../lib/dev-diagnostics'
+import { useI18n } from '../features/i18n/i18n'
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+  const {language}=useI18n(); const zh=language==='zh-CN'
   const { backgroundRefreshing, backgroundError, refreshAccess } = useAuth()
 
   useDevMountCounter('AppShell')
@@ -55,7 +57,7 @@ export function AppShell() {
           >
             <span className="inline-flex items-center gap-2">
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-              Rechecking workspace access in the background… Your current work stays open.
+              {zh?'正在背景确认工作区权限，当前页面与输入会保持不变。':'Rechecking workspace access in the background… Your current work stays open.'}
             </span>
           </div>
         ) : null}
@@ -66,7 +68,7 @@ export function AppShell() {
           >
             <span className="inline-flex items-center gap-2 font-semibold">
               <AlertTriangle className="size-4 text-gold-dark" aria-hidden="true" />
-              Workspace recheck was interrupted. Your page and form remain open.
+              {zh?'工作区背景检查中断；页面和表单仍保持打开。':'Workspace recheck was interrupted. Your page and form remain open.'}
             </span>
             <Button
               size="sm"
@@ -74,7 +76,7 @@ export function AppShell() {
               onClick={() => void refreshAccess()}
             >
               <RefreshCw className="size-3.5" aria-hidden="true" />
-              Retry access check
+              {zh?'重试权限检查':'Retry access check'}
             </Button>
           </div>
         ) : null}
