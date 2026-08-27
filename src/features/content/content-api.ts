@@ -60,6 +60,7 @@ export interface ContentRecord {
   archived_at: string | null
   archive_reason: string | null
   planned_date: string | null
+  planned_shoot_date?: string | null
   shoot_scheduled_at?: string | null
   ownership_name: string
   ownership_type: 'internal_brand' | 'external_client'

@@ -39,10 +39,12 @@ export function productionProgressLabel(status: string | null, language: 'zh-CN'
 
 export function sortIdeasByPlannedDate(ideas: IdeaRecord[]) {
   return [...ideas].sort((left, right) => {
-    if (!left.planned_date && !right.planned_date) return right.updated_at.localeCompare(left.updated_at)
-    if (!left.planned_date) return 1
-    if (!right.planned_date) return -1
-    const byDate = left.planned_date.localeCompare(right.planned_date)
+    if (!(left.planned_shoot_date || left.planned_date) && !(right.planned_shoot_date || right.planned_date)) return right.updated_at.localeCompare(left.updated_at)
+    const leftDate = left.planned_shoot_date || left.planned_date
+    const rightDate = right.planned_shoot_date || right.planned_date
+    if (!leftDate) return 1
+    if (!rightDate) return -1
+    const byDate = leftDate.localeCompare(rightDate)
     return byDate || left.title.localeCompare(right.title)
   })
 }

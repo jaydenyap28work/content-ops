@@ -5,8 +5,8 @@ function fail(error:{message:string}|null){if(error)throw new Error(error.messag
 export interface CalendarEvent{event_key:string;event_type:'PLAN'|'SHOOT'|'REVIEW'|'PUBLISH';event_at:string;title:string;client_name:string;status:string;entity_type:'idea'|'content';entity_id:string}
 export async function loadCalendarEvents(workspaceId:string,from:string,to:string){const{data,error}=await supabase.rpc('list_calendar_events',{target_workspace_id:workspaceId,target_from:from,target_to:to});fail(error);return(data??[]) as CalendarEvent[]}
 
-export type PlanningBulkField='planning_status'|'owner'|'target_publish_date'|'shoot_planned_at'|'priority'|'category'|'tags'
-export async function bulkUpdateIdeas(ids:string[],field:PlanningBulkField,values:string[]){const{data,error}=await supabase.rpc('bulk_update_planning_items',{target_idea_ids:ids,target_field:field,target_values:values});fail(error);return data as number}
+export type PlanningBulkField='planning_status'|'owner'|'target_publish_date'|'planned_shoot_date'|'priority'|'category'|'tags'
+export async function bulkUpdateIdeas(ids:string[],field:PlanningBulkField,values:string[]){const result=field==='planned_shoot_date'?await supabase.rpc('bulk_update_idea_shoot_dates',{target_idea_ids:ids,target_date:values[0]||null}):await supabase.rpc('bulk_update_planning_items',{target_idea_ids:ids,target_field:field,target_values:values});fail(result.error);return result.data as number}
 
 export interface ShootingBrief{idea_id:string;why_now:string|null;interview_questions:string[];key_talking_points:string[];key_takeaway:string|null;suggested_cta:string|null;target_duration:string|null;b_roll_visual_suggestions:string[];risk_fact_check_notes:string[];talent:string|null;shoot_date:string|null;location:string|null;shooter_user_id:string|null;generation_source:'template'|'manual'|null;generated_at:string|null}
 export type ShootingBriefGenerationInput={ideaId:string;whyNow:string;interviewQuestions:string[];keyTalkingPoints:string[];keyTakeaway:string;suggestedCta:string;targetDuration:string;bRollVisualSuggestions:string[];riskFactCheckNotes:string[]}

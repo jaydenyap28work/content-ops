@@ -4,10 +4,10 @@ import type { ContentRecord } from './content-api'
 
 describe('production board and tracker', () => {
   it('places unscheduled and scheduled confirmed Content into visible board stages', () => {
-    expect(productionBoardStage({ current_status: 'draft', publication_state: 'not_published', shoot_scheduled_at: null })).toBe('awaiting_schedule')
-    expect(productionBoardStage({ current_status: 'ready_to_shoot', publication_state: 'not_published', shoot_scheduled_at: '2026-08-31T06:00:00Z' })).toBe('scheduled_shoot')
-    expect(productionBoardStage({ current_status: 'editing', publication_state: 'not_published', shoot_scheduled_at: null })).toBe('editing')
-    expect(productionBoardStage({ current_status: 'ready_for_publishing', publication_state: 'fully_published', shoot_scheduled_at: null })).toBe('published')
+    expect(productionBoardStage({ current_status: 'ready_to_shoot', publication_state: 'not_published', shoot_scheduled_at: null, planned_shoot_date: null })).toBe('awaiting_schedule')
+    expect(productionBoardStage({ current_status: 'ready_to_shoot', publication_state: 'not_published', shoot_scheduled_at: '2026-08-31T06:00:00Z', planned_shoot_date: null })).toBe('scheduled_shoot')
+    expect(productionBoardStage({ current_status: 'editing', publication_state: 'not_published', shoot_scheduled_at: null, planned_shoot_date: null })).toBe('editing')
+    expect(productionBoardStage({ current_status: 'ready_for_publishing', publication_state: 'fully_published', shoot_scheduled_at: null, planned_shoot_date: null })).toBe('published')
   })
 
   it('derives human-readable production steps without database tokens', () => {
@@ -25,11 +25,11 @@ describe('production board and tracker', () => {
   })
 
   it('distinguishes scheduling from starting a scheduled shoot', () => {
-    const base = { current_status: 'draft', publication_state: 'not_published', contributors: [], publications: [] }
-    const unscheduled = productionTracker({ ...base, shoot_scheduled_at: null } as unknown as ContentRecord, 'zh-CN')
+    const base = { current_status: 'ready_to_shoot', publication_state: 'not_published', contributors: [], publications: [] }
+    const unscheduled = productionTracker({ ...base, shoot_scheduled_at: null, planned_shoot_date: null } as unknown as ContentRecord, 'zh-CN')
     expect(unscheduled.shooting).toBe('待安排拍摄')
     expect(unscheduled.nextAction).toBe('安排拍摄')
-    const scheduled = productionTracker({ ...base, shoot_scheduled_at: '2026-08-31T06:00:00Z' } as unknown as ContentRecord, 'zh-CN')
+    const scheduled = productionTracker({ ...base, shoot_scheduled_at: '2026-08-31T06:00:00Z', planned_shoot_date: '2026-08-31' } as unknown as ContentRecord, 'zh-CN')
     expect(scheduled.shooting).toContain('已安排')
     expect(scheduled.nextAction).toBe('开始拍摄')
   })

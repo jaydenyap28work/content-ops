@@ -7,7 +7,7 @@ const zh: Record<string, string> = {
   ready_for_publishing: '待发布', analytics_tracking: '数据追踪中', completed: '已完成', cancelled: '已取消',
   not_published: '未发布', partially_published: '部分已发布', fully_published: '已发布', needs_attention: '需要处理',
   low: '低', normal: '普通', high: '高', urgent: '紧急',
-  PLAN: '计划', SHOOT: '拍摄', REVIEW: '审核', PUBLISH: '发布',
+  PLAN: '计划', SHOOT: '🎥 拍摄', REVIEW: '审核', PUBLISH: '发布',
   active: '启用', external_client: '外部客户', internal_brand: '内部品牌',
 }
 

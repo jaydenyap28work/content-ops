@@ -1,9 +1,10 @@
-import type { ContentRecord } from './content-api'
+import type { ContentRecord, ContentStatus } from './content-api'
+import type { WorkflowAction } from './workflow-api'
 
-export function productionBoardStage(content: Pick<ContentRecord, 'current_status' | 'publication_state' | 'shoot_scheduled_at'>) {
+export function productionBoardStage(content: Pick<ContentRecord, 'current_status' | 'publication_state' | 'shoot_scheduled_at' | 'planned_shoot_date'>) {
   if (content.publication_state === 'fully_published' && content.current_status === 'ready_for_publishing') return 'published'
   if (content.current_status === 'draft' || content.current_status === 'ready_to_shoot') {
-    return content.shoot_scheduled_at ? 'scheduled_shoot' : 'awaiting_schedule'
+    return content.shoot_scheduled_at || content.planned_shoot_date ? 'scheduled_shoot' : 'awaiting_schedule'
   }
   return content.current_status
 }
@@ -28,6 +29,23 @@ function dateTime(value: string | null, language: 'zh-CN' | 'en') {
   }).format(new Date(value))
 }
 
+function dateOnly(value: string, language: 'zh-CN' | 'en') {
+  return new Intl.DateTimeFormat(language === 'zh-CN' ? 'zh-CN' : 'en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur', day: '2-digit', month: 'short',
+  }).format(new Date(`${value}T12:00:00+08:00`))
+}
+
+export function legalWorkflowAction(content: ContentRecord): { action: WorkflowAction; expected: ContentStatus; zh: string; en: string } | null {
+  const map: Partial<Record<ContentStatus, { action: WorkflowAction; zh: string; en: string }>> = {
+    draft: { action: 'mark_ready_to_shoot', zh: '确认待拍摄', en: 'Mark ready to shoot' },
+    ready_to_shoot: { action: 'start_shooting', zh: '开始拍摄', en: 'Start shooting' },
+    shooting: { action: 'complete_shooting', zh: '完成拍摄', en: 'Complete shooting' },
+    shot_awaiting_edit: { action: 'start_editing', zh: '开始剪辑', en: 'Start editing' },
+  }
+  const next = map[content.current_status]
+  return next ? { ...next, expected: content.current_status } : null
+}
+
 export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'en') {
   const zh = language === 'zh-CN'
   const status = content.current_status
@@ -42,7 +60,8 @@ export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'e
   let shooting = zh ? '待安排拍摄' : 'Needs scheduling'
   if (status === 'shooting') shooting = zh ? '拍摄中' : 'Shooting'
   else if (afterShooting.has(status)) shooting = zh ? '✓ 已拍摄' : '✓ Shot'
-  else if (content.shoot_scheduled_at) shooting = `${dateTime(content.shoot_scheduled_at, language)} · ${zh ? '已安排' : 'Scheduled'}`
+  else if (content.shoot_scheduled_at) shooting = `${zh ? '已安排拍摄' : 'Shoot scheduled'} · ${dateTime(content.shoot_scheduled_at, language)}`
+  else if (content.planned_shoot_date) shooting = `${zh ? '已安排拍摄' : 'Shoot scheduled'} · ${dateOnly(content.planned_shoot_date, language)} · ${zh ? '时间待定' : 'Time TBD'}`
 
   let editing = zh ? '待剪辑' : 'Awaiting edit'
   if (status === 'editing') editing = editor ? `${zh ? '剪辑中' : 'Editing'} · ${editor}` : (zh ? '剪辑中' : 'Editing')
@@ -62,16 +81,16 @@ export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'e
   else if (content.publication_state === 'partially_published') publishing = `${zh ? '部分已发布' : 'Partially published'} · ${publishedPlatforms.join(' + ')}`
 
   let nextAction = zh ? '查看详情' : 'View details'
-  if (status === 'draft' || status === 'ready_to_shoot') nextAction = content.shoot_scheduled_at ? (zh ? '开始拍摄' : 'Start shooting') : (zh ? '安排拍摄' : 'Schedule shoot')
+  if (status === 'draft') nextAction = zh ? '确认待拍摄' : 'Mark ready to shoot'
+  else if (status === 'ready_to_shoot') nextAction = content.shoot_scheduled_at ? (zh ? '开始拍摄' : 'Start shooting') : content.planned_shoot_date ? (zh ? '补充拍摄时间 / 开始拍摄' : 'Add shoot time / Start shooting') : (zh ? '安排拍摄' : 'Schedule shoot')
   else {
     const next: Record<string, [string, string]> = {
-      shooting: ['完成拍摄', 'Complete shooting'], shot_awaiting_edit: ['等待剪辑', 'Await editing'], editing: ['提交初剪', 'Submit first cut'],
+      shooting: ['完成拍摄', 'Complete shooting'], shot_awaiting_edit: ['开始剪辑', 'Start editing'], editing: ['提交初剪', 'Submit first cut'],
       first_cut_submitted: ['审核初剪', 'Review first cut'], internal_review: ['完成审核', 'Complete review'], revision_required: ['处理修改', 'Handle revision'],
       client_review: ['等待客户确认', 'Await client approval'], approved: ['安排发布', 'Schedule publishing'], ready_for_publishing: ['安排发布', 'Schedule publishing'],
-      analytics_tracking: ['查看结果', 'View results'], completed: ['查看结果', 'View results'],
+      analytics_tracking: ['查看数据', 'View analytics'], completed: ['查看数据', 'View analytics'],
     }
     nextAction = next[status]?.[zh ? 0 : 1] ?? nextAction
   }
-
   return { shooting, editing, review, publishing, nextAction }
 }

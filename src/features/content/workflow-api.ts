@@ -150,3 +150,26 @@ export async function removeContentContributor(contributorId: string) {
   })
   fail(error)
 }
+export async function bulkUpdateProductionItems(contentIds: string[], field: 'owner' | 'planned_shoot_date', value: string) {
+  const { data, error } = await supabase.rpc('bulk_update_production_items', {
+    target_content_ids: contentIds, target_field: field, target_value: value,
+  })
+  fail(error)
+  return data as number
+}
+
+export async function bulkAssignContentContributor(contentIds: string[], userId: string, roleCode: 'shooter' | 'editor' | 'reviewer' | 'publisher') {
+  const { data, error } = await supabase.rpc('bulk_assign_content_contributor', {
+    target_content_ids: contentIds, target_user_id: userId, target_role_code: roleCode,
+  })
+  fail(error)
+  return data as number
+}
+
+export async function bulkPerformWorkflowAction(contentIds: string[], action: WorkflowAction, expectedState: ContentStatus, note = '') {
+  const { data, error } = await supabase.rpc('bulk_perform_content_workflow_action', {
+    target_content_ids: contentIds, target_action: action, expected_from_state: expectedState, target_note: note,
+  })
+  fail(error)
+  return data as number
+}
