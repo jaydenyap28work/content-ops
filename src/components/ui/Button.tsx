@@ -12,12 +12,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'border-ink bg-ink text-paper shadow-[3px_3px_0_0_var(--color-coral)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_0_var(--color-coral)]',
+    'border-primary bg-primary text-white shadow-sm hover:border-primary-hover hover:bg-primary-hover',
   secondary:
     'border-line-strong bg-paper text-ink hover:border-ink hover:bg-canvas',
   ghost: 'border-transparent bg-transparent text-ink-muted hover:bg-ink/7 hover:text-ink',
   danger:
-    'border-coral bg-coral text-white shadow-[3px_3px_0_0_var(--color-ink)] hover:-translate-y-0.5',
+    'border-danger bg-danger text-white shadow-sm hover:bg-danger-dark',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -42,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-2 rounded-md border font-semibold tracking-[-0.01em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45',
+        'inline-flex shrink-0 items-center justify-center gap-2 rounded-md border font-semibold tracking-[-0.01em] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-45',
         variantClasses[variant],
         sizeClasses[size],
         className,

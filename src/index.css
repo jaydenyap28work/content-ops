@@ -2,25 +2,32 @@
 
 @theme {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader Variable", Georgia, serif;
+  --font-display: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #10252f;
-  --color-ink-soft: #52666d;
-  --color-ink-muted: #718289;
-  --color-paper: #fffdf8;
-  --color-canvas: #f2efe7;
-  --color-canvas-raised: #f8f6ef;
-  --color-line: #d9d7cf;
-  --color-line-strong: #bfbbb1;
-  --color-coral: #dc5a42;
-  --color-coral-light: #ff9c88;
-  --color-coral-dark: #a73725;
-  --color-blue: #2f6f9f;
-  --color-green: #30775b;
-  --color-gold: #9b6a1c;
-  --color-gold-dark: #704811;
-  --color-ink-subtle: #718289;
-  --color-ink-faint: #9aa6a9;
+  --color-primary: #1e5eff;
+  --color-primary-hover: #184ed8;
+  --color-nav: #081826;
+  --color-nav-hover: #0f2a42;
+  --color-nav-active: #13395a;
+  --color-ink: #0b1b2b;
+  --color-ink-soft: #25364a;
+  --color-ink-muted: #6b7a8c;
+  --color-paper: #ffffff;
+  --color-canvas: #f6f8fb;
+  --color-canvas-raised: #f0f4f8;
+  --color-line: #d7dee7;
+  --color-line-strong: #b9c5d2;
+  --color-coral: #1e5eff;
+  --color-coral-light: #5f88ff;
+  --color-coral-dark: #184ed8;
+  --color-blue: #1e5eff;
+  --color-green: #16a34a;
+  --color-gold: #d97706;
+  --color-gold-dark: #a85205;
+  --color-danger: #dc2626;
+  --color-danger-dark: #b91c1c;
+  --color-ink-subtle: #6b7a8c;
+  --color-ink-faint: #94a3b2;
 
   --spacing-sidebar: 17rem;
   --container-content: 84rem;
@@ -48,12 +55,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 85% 5%, rgb(220 90 66 / 8%), transparent 26rem),
-    linear-gradient(rgb(16 37 47 / 2%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(16 37 47 / 2%) 1px, transparent 1px),
-    var(--color-canvas);
-  background-size: auto, 32px 32px, 32px 32px, auto;
+  background: var(--color-canvas);
 }
 
 button,
@@ -70,11 +72,11 @@ a {
 
 ::selection {
   color: white;
-  background: var(--color-coral);
+  background: var(--color-primary);
 }
 
 :focus-visible {
-  outline-color: var(--color-coral);
+  outline-color: var(--color-primary);
 }
 
 @keyframes page-enter {

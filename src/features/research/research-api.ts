@@ -1,5 +1,4 @@
 import { supabase } from '../../lib/supabase'
-import { loadClients } from '../admin/admin-api'
 import type { ClientRecord } from '../admin/admin-api'
 import type { IdeaContentFormat } from './idea-format'
 
@@ -7,6 +6,7 @@ export interface PlatformRecord { id: string; code: string; name: string }
 export interface CategoryRecord { id: string; client_id: string | null; name: string }
 export interface ContributionRoleRecord { id: string; code: string; name: string }
 export interface ContributorOption { user_profile_id: string; display_name: string }
+export interface IdeaProviderOption { team_member_id: string; display_name: string; is_current_user: boolean }
 
 export interface ReferenceRecord {
   id: string
@@ -57,9 +57,12 @@ export interface IdeaRecord {
   status: IdeaStatus
   planning_status: PlanningStatus
   owner_user_id: string | null
+  idea_provider_team_member_id?: string | null
   created_by: string
   owner_name: string | null
   creator_name: string | null
+  provider_name?: string | null
+  can_edit_submission?: boolean
   linked_content_id: string | null
   linked_content_code: string | null
   linked_content_status: string | null
@@ -88,21 +91,16 @@ function fail(error: { message: string } | null) {
 }
 
 export async function loadResearchCatalog(workspaceId: string): Promise<ResearchCatalog> {
-  const [clients, platforms, categories, contributionRoles] = await Promise.all([
-    loadClients(workspaceId),
-    supabase.from('platforms').select('id, code, name').eq('is_active', true).order('sort_order'),
-    supabase.from('content_categories').select('id, client_id, name').eq('workspace_id', workspaceId).eq('is_active', true).order('sort_order'),
-    supabase.from('contribution_roles').select('id, code, name').eq('workspace_id', workspaceId).eq('is_active', true).order('sort_order'),
-  ])
-  fail(platforms.error); fail(categories.error); fail(contributionRoles.error)
+  const { data, error } = await supabase.rpc('list_idea_submission_catalog', { target_workspace_id: workspaceId })
+  fail(error)
+  const catalog = (data ?? {}) as Partial<ResearchCatalog>
   return {
-    clients: clients.filter((client) => client.status === 'active'),
-    platforms: (platforms.data ?? []) as PlatformRecord[],
-    categories: (categories.data ?? []) as CategoryRecord[],
-    contributionRoles: (contributionRoles.data ?? []) as ContributionRoleRecord[],
+    clients: catalog.clients ?? [],
+    platforms: catalog.platforms ?? [],
+    categories: catalog.categories ?? [],
+    contributionRoles: catalog.contributionRoles ?? [],
   }
 }
-
 export async function loadReferences(workspaceId: string) {
   const refs = await supabase.from('references').select('id, workspace_id, client_id, reference_type, title, account_name, platform_id, url, industry, country, content_style, format, why_it_works, learning_notes, gold_standard, status, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false })
   fail(refs.error)
@@ -127,7 +125,7 @@ export async function loadReferences(workspaceId: string) {
 
 export async function loadIdeas(workspaceId: string) {
   const [ideas, plannerContext] = await Promise.all([
-    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, source_platform, raw_content, content_format, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }),
+    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, source_platform, raw_content, content_format, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, idea_provider_team_member_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }),
     supabase.rpc('list_idea_planner_context', { target_workspace_id: workspaceId }),
   ])
   fail(ideas.error); fail(plannerContext.error)
@@ -174,20 +172,20 @@ export async function archiveReference(id: string) {
 export async function saveIdea(workspaceId: string, values: {
   id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; rawContent?: string; contentFormat?: IdeaContentFormat | ''; originalTopic: string; originalHook: string;
   whyItWorks: string; ourAngle: string; categoryId: string | null; suggestedFormat: string; priority: string;
-  ownerUserId: string | null; notes: string; referenceIds: string[]; tags: string[];
+  providerTeamMemberId: string | null; notes: string; referenceIds: string[]; tags: string[];
   contributors: Array<{ userId: string; roleId: string; notes?: string | null }>
 }) {
-  const { data, error } = await supabase.rpc('save_idea', {
+  const { data, error } = await supabase.rpc('save_idea_submission', {
     target_idea_id: values.id ?? null, target_workspace_id: workspaceId, target_client_id: values.clientId,
     target_title: values.title, target_source_url: values.sourceUrl, target_original_topic: values.originalTopic,
     target_original_hook: values.originalHook, target_why_it_works: values.whyItWorks, target_our_angle: values.ourAngle,
     target_category_id: values.categoryId, target_suggested_format: values.suggestedFormat, target_priority: values.priority,
-    target_owner_user_id: values.ownerUserId, target_notes: values.notes, target_reference_ids: values.referenceIds,
+    target_provider_team_member_id: values.providerTeamMemberId, target_notes: values.notes, target_reference_ids: values.referenceIds,
     target_tag_names: values.tags, target_contributors: values.contributors,
     target_planned_date: values.plannedDate || null, target_source_platform: values.sourcePlatform,
     target_raw_content: values.rawContent ?? values.originalTopic, target_content_format: values.contentFormat ?? '',
   })
-  if (error) console.error('[ContentOS] save_idea RPC failed', error)
+  if (error) console.error('[ContentOS] save_idea_submission RPC failed', error)
   fail(error); return data as string
 }
 
@@ -209,4 +207,10 @@ export async function changeIdeaStatus(id: string, status: IdeaStatus, reason = 
 export async function loadContributorOptions(clientId: string) {
   const { data, error } = await supabase.rpc('list_research_contributors', { target_client_id: clientId }); fail(error)
   return (data ?? []) as ContributorOption[]
+}
+
+export async function loadIdeaProviderOptions(clientId: string) {
+  const { data, error } = await supabase.rpc('list_idea_provider_options', { target_client_id: clientId })
+  fail(error)
+  return (data ?? []) as IdeaProviderOption[]
 }

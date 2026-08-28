@@ -32,11 +32,11 @@ export function FormField({
     <div className={cn('grid gap-2', className)}>
       <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
         {label}
-        {required ? <span className="ml-1 text-coral">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </label>
       {children}
       {supportText ? (
-        <p className={cn('text-xs text-ink-subtle', error && 'text-coral-dark')}>
+        <p className={cn('text-xs text-ink-subtle', error && 'text-danger-dark')}>
           {supportText}
         </p>
       ) : null}
@@ -45,7 +45,7 @@ export function FormField({
 }
 
 const controlClasses =
-  'w-full rounded-md border border-line-strong bg-paper px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-ink focus:ring-2 focus:ring-coral/25 disabled:cursor-not-allowed disabled:bg-canvas-raised disabled:text-ink-faint'
+  'w-full rounded-md border border-line-strong bg-paper px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-canvas-raised disabled:text-ink-faint'
 
 export const Input = forwardRef<
   HTMLInputElement,

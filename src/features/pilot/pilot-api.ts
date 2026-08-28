@@ -6,8 +6,8 @@ export type CalendarEventType='SHOOT'|'PUBLISH_TARGET'|'REVIEW'|'PUBLISH'|'MEETI
 export interface CalendarEvent{event_key:string;event_type:CalendarEventType;event_at:string;title:string;client_name:string;status:string;entity_type:'idea'|'content'|'calendar_event';entity_id:string}
 export async function loadCalendarEvents(workspaceId:string,from:string,to:string){const{data,error}=await supabase.rpc('list_calendar_events',{target_workspace_id:workspaceId,target_from:from,target_to:to});fail(error);return(data??[]) as CalendarEvent[]}
 
-export type PlanningBulkField='planning_status'|'owner'|'target_publish_date'|'planned_shoot_date'|'priority'|'category'|'tags'
-export async function bulkUpdateIdeas(ids:string[],field:PlanningBulkField,values:string[]){const result=field==='planned_shoot_date'?await supabase.rpc('bulk_update_idea_shoot_dates',{target_idea_ids:ids,target_date:values[0]||null}):await supabase.rpc('bulk_update_planning_items',{target_idea_ids:ids,target_field:field,target_values:values});fail(result.error);return result.data as number}
+export type PlanningBulkField='planning_status'|'provider'|'target_publish_date'|'planned_shoot_date'|'priority'|'category'|'tags'
+export async function bulkUpdateIdeas(ids:string[],field:PlanningBulkField,values:string[]){const result=field==='planned_shoot_date'?await supabase.rpc('bulk_update_idea_shoot_dates',{target_idea_ids:ids,target_date:values[0]||null}):field==='provider'?await supabase.rpc('bulk_update_idea_providers',{target_idea_ids:ids,target_team_member_id:values[0]||null}):await supabase.rpc('bulk_update_planning_items',{target_idea_ids:ids,target_field:field,target_values:values});fail(result.error);return result.data as number}
 
 export type ShootingFormat='q_and_a'|'talking_head'|'skit'|'product_demo'|'podcast'|'voice_over'|'event'
 export interface ShootingPackDialogue{character:string;line:string}

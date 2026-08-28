@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './features/auth/AuthProvider'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { RouteAccessGuard } from './features/auth/RouteAccessGuard'
 import { AppShell } from './layouts/AppShell'
 import { routeDefinitions } from './lib/navigation'
 import { LoginPage } from './pages/LoginPage'
@@ -36,10 +37,10 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : route.path === '/tasks' ? <TasksPage /> : route.path === '/equipment-proposals' ? <EquipmentProposalsPage /> : <PlaceholderPage route={route} />}
+                  element={<RouteAccessGuard path={route.path}>{route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : route.path === '/tasks' ? <TasksPage /> : route.path === '/equipment-proposals' ? <EquipmentProposalsPage /> : <PlaceholderPage route={route} />}</RouteAccessGuard>}
                 />
               ))}
-              <Route path="content/:contentId" element={<ContentDetailPage />} />
+              <Route path="content/:contentId" element={<RouteAccessGuard path="/content"><ContentDetailPage /></RouteAccessGuard>} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Route>

@@ -12,7 +12,7 @@ const toneClasses: Record<StatusTone, string> = {
   info: 'border-blue/30 bg-blue/10 text-blue',
   success: 'border-green/30 bg-green/10 text-green',
   warning: 'border-gold/40 bg-gold/12 text-gold-dark',
-  critical: 'border-coral/35 bg-coral/10 text-coral-dark',
+  critical: 'border-danger/35 bg-danger/10 text-danger-dark',
 }
 
 export function StatusBadge({

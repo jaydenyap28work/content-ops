@@ -321,7 +321,7 @@ export function IdeaFormDrawer({
         sourceUrl: parsedSource.url ?? '',
         sourcePlatform: parsedSource.platform,
         categoryId: form.categoryId || null,
-        ownerUserId: form.ownerUserId || null,
+        providerTeamMemberId: null,
         tags: parseTags(form.tags),
       })
       await onSaved(idea ? 'Idea updated.' : 'Idea created.')

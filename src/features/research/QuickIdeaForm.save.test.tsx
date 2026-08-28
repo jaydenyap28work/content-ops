@@ -18,7 +18,7 @@ vi.mock('../i18n/i18n', () => ({
 }))
 
 vi.mock('./research-api', () => ({
-  loadContributorOptions: vi.fn(async () => []),
+  loadIdeaProviderOptions: vi.fn(async () => [{ team_member_id: 'member-1', display_name: 'Jayden', is_current_user: true }]),
   saveIdea: mocks.saveIdea,
 }))
 
@@ -43,11 +43,12 @@ describe('Quick Idea save flow', () => {
     const form = screen.getByRole('heading', { name: '新增选题' }).closest('section')!.querySelector('form')!
     const title = form.querySelector('input[required]')!
     fireEvent.change(title, { target: { value: 'ContentOS Idea Test' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: '保存选题' }).hasAttribute('disabled')).toBe(false))
     fireEvent.click(screen.getByRole('button', { name: '保存选题' }))
 
     await waitFor(() => expect(mocks.saveIdea).toHaveBeenCalledWith('workspace-1', expect.objectContaining({
       title: 'ContentOS Idea Test', sourceUrl: '', rawContent: '', contentFormat: '', priority: '',
-      ownerUserId: 'user-1', categoryId: null, tags: [],
+      providerTeamMemberId: 'member-1', categoryId: null, tags: [],
     })))
     expect(onSaved).toHaveBeenCalledWith('选题已保存')
   })
