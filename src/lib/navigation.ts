@@ -1,4 +1,4 @@
-import{Activity,Archive,BookOpen,Building2,CalendarDays,FileText,FolderOpen,LayoutDashboard,Lightbulb,ListTodo,Music2,PackageSearch,Settings,Store,Users}from'lucide-react'
+import{Activity,Archive,BarChart3,BookOpen,Building2,CalendarDays,FileText,FolderOpen,LayoutDashboard,Lightbulb,ListTodo,Music2,PackageSearch,Settings,Store,Users}from'lucide-react'
 import type{AppRouteDefinition,NavigationSection}from'../types/navigation'
 export const routeDefinitions:AppRouteDefinition[]=[
 {path:'/',title:'工作台',navigationLabel:'工作台',description:'今天与本周需要推进的内容。',foundationNote:'由真实排期与 workflow records 派生。',phase:'V0.1 Pilot',section:'Daily Work',icon:LayoutDashboard},
@@ -7,6 +7,7 @@ export const routeDefinitions:AppRouteDefinition[]=[
 {path:'/calendar',title:'日历',navigationLabel:'日历',description:'自动汇总计划、拍摄与发布。',foundationNote:'不建立第二套 event。',phase:'V0.1 Pilot',section:'Daily Work',icon:CalendarDays},
 {path:'/brand/lksoft',title:'LKSoft 品牌中心',navigationLabel:'LKSoft 品牌中心',description:'LKSoft 内部品牌账号、素材与剪辑规范。',foundationNote:'Internal Brand operations。',phase:'V0.1 Pilot',section:'Brand',icon:Store},
 {path:'/analytics',title:'数据分析',navigationLabel:'数据分析',description:'手动追踪已发布内容表现。',foundationNote:'24h / 7d / 30d。',phase:'V0.1 Pilot',section:'Results',icon:Activity},
+{path:'/team-reports',title:'团队报表',navigationLabel:'团队报表',description:'按实际完成事件查看团队贡献。',foundationNote:'不以 assignment 或综合评分代替事实。',phase:'V0.1 Pilot',section:'Results',icon:BarChart3},
 {path:'/tasks',title:'待办',navigationLabel:'待办',description:'轻量执行事项与到期提醒',foundationNote:'不包含复杂项目管理',phase:'V0.1 Pilot',section:'Management',icon:ListTodo},
 {path:'/equipment-proposals',title:'装备提案',navigationLabel:'装备提案',description:'Marketing 装备升级提案与老板决定。',foundationNote:'轻量提案，不是采购系统。',phase:'V0.1 Pilot',section:'Management',icon:PackageSearch},
 {path:'/clients',title:'客户',navigationLabel:'客户',description:'客户与品牌边界。',foundationNote:'Client-scoped。',phase:'V0.1 Pilot',section:'Management',icon:Building2},

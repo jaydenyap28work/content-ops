@@ -13,6 +13,7 @@ import { IdeaDetailPage } from './pages/IdeaDetailPage'
 import { ContentPage } from './pages/ContentPage'
 import { ContentDetailPage } from './pages/ContentDetailPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { TeamReportsPage } from './pages/TeamReportsPage'
 import { TasksPage } from './pages/TasksPage'
 import { EquipmentProposalsPage } from './pages/EquipmentProposalsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -38,7 +39,7 @@ export default function App() {
                   key={route.path}
                   index={route.path === '/'}
                   path={route.path === '/' ? undefined : route.path.slice(1)}
-                  element={<RouteAccessGuard path={route.path}>{route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : route.path === '/tasks' ? <TasksPage /> : route.path === '/equipment-proposals' ? <EquipmentProposalsPage /> : <PlaceholderPage route={route} />}</RouteAccessGuard>}
+                  element={<RouteAccessGuard path={route.path}>{route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : route.path === '/team-reports' ? <TeamReportsPage /> : route.path === '/tasks' ? <TasksPage /> : route.path === '/equipment-proposals' ? <EquipmentProposalsPage /> : <PlaceholderPage route={route} />}</RouteAccessGuard>}
                 />
               ))}
               <Route path="ideas/:ideaId" element={<RouteAccessGuard path="/ideas"><IdeaDetailPage /></RouteAccessGuard>} />

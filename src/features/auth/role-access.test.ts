@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canAccessAppPath, canManageIdeaDecisions, isIdeaContributorOnly } from './role-access'
+import { canAccessAppPath, canManageIdeaDecisions, canViewTeamReports, isIdeaContributorOnly } from './role-access'
 
 describe('Idea Contributor route access', () => {
   it('allows a contributor-only user to access only the Idea pool', () => {
@@ -18,5 +18,11 @@ describe('Idea Contributor route access', () => {
     expect(isIdeaContributorOnly(roles)).toBe(false)
     expect(canAccessAppPath(roles, '/content')).toBe(true)
     expect(canManageIdeaDecisions(roles)).toBe(true)
+  })
+  it('keeps Team Reports limited to management and Marketing roles',()=>{
+    expect(canViewTeamReports(['Super Admin'])).toBe(true)
+    expect(canViewTeamReports(['Publisher / Marketing'])).toBe(true)
+    expect(canAccessAppPath(['Idea Contributor'],'/team-reports')).toBe(false)
+    expect(canAccessAppPath(['Editor'],'/team-reports')).toBe(false)
   })
 })
