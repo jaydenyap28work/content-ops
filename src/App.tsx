@@ -9,6 +9,7 @@ import { ClientsPage } from './pages/ClientsPage'
 import { TeamPage } from './pages/TeamPage'
 import { ReferencesPage } from './pages/ReferencesPage'
 import { IdeasPage } from './pages/IdeasPage'
+import { IdeaDetailPage } from './pages/IdeaDetailPage'
 import { ContentPage } from './pages/ContentPage'
 import { ContentDetailPage } from './pages/ContentDetailPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
@@ -40,6 +41,7 @@ export default function App() {
                   element={<RouteAccessGuard path={route.path}>{route.path === '/' ? <DashboardPage /> : route.path === '/calendar' ? <CalendarPage /> : route.path === '/brand/lksoft' ? <BrandHubPage /> : route.path === '/settings' ? <SettingsPage /> : route.path === '/assets' ? <ResourcePage type="assets" /> : route.path === '/music' ? <ResourcePage type="music" /> : route.path === '/editing-playbook' ? <ResourcePage type="playbook" /> : route.path === '/clients' ? <ClientsPage /> : route.path === '/team' ? <TeamPage /> : route.path === '/references' ? <ReferencesPage /> : route.path === '/ideas' ? <IdeasPage /> : route.path === '/content' ? <ContentPage /> : route.path === '/analytics' ? <AnalyticsPage /> : route.path === '/tasks' ? <TasksPage /> : route.path === '/equipment-proposals' ? <EquipmentProposalsPage /> : <PlaceholderPage route={route} />}</RouteAccessGuard>}
                 />
               ))}
+              <Route path="ideas/:ideaId" element={<RouteAccessGuard path="/ideas"><IdeaDetailPage /></RouteAccessGuard>} />
               <Route path="content/:contentId" element={<RouteAccessGuard path="/content"><ContentDetailPage /></RouteAccessGuard>} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>

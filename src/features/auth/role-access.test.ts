@@ -6,6 +6,7 @@ describe('Idea Contributor route access', () => {
     const roles = ['Idea Contributor']
     expect(isIdeaContributorOnly(roles)).toBe(true)
     expect(canAccessAppPath(roles, '/ideas')).toBe(true)
+    expect(canAccessAppPath(roles, '/ideas/idea-123')).toBe(true)
     for (const path of ['/', '/content', '/calendar', '/team', '/analytics', '/settings']) {
       expect(canAccessAppPath(roles, path)).toBe(false)
     }

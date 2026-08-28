@@ -17,7 +17,7 @@ export function isIdeaContributorOnly(roles: string[]) {
 
 export function canAccessAppPath(roles: string[], pathname: string) {
   if (!isIdeaContributorOnly(roles)) return true
-  return pathname === '/ideas'
+  return pathname === '/ideas' || pathname.startsWith('/ideas/')
 }
 
 export function canManageIdeaDecisions(roles: string[]) {
