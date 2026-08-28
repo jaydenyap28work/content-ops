@@ -3,6 +3,7 @@ import { loadClients } from '../admin/admin-api'
 import type { ClientRecord } from '../admin/admin-api'
 import { loadContributorOptions, loadIdeas, loadReferences } from '../research/research-api'
 import type { CategoryRecord, ContributorOption, IdeaRecord, ReferenceRecord } from '../research/research-api'
+import { parseSkitContent } from '../pilot/skit-parser'
 
 export type ContentStatus =
   | 'draft'
@@ -257,8 +258,9 @@ export async function saveContent(workspaceId: string, values: ContentFormValues
   return data as string
 }
 
-export async function confirmIdeaForProduction(ideaId: string) {
-  const { data, error } = await supabase.rpc('confirm_idea_for_production', { target_idea_id: ideaId })
+export async function confirmIdeaForProduction(idea: Pick<IdeaRecord, 'id' | 'content_format' | 'raw_content'>) {
+  const skitSegments = idea.content_format === 'skit' ? parseSkitContent(idea.raw_content ?? '') : []
+  const { data, error } = await supabase.rpc('confirm_idea_for_production_v2', { target_idea_id: idea.id, target_skit_segments: skitSegments })
   fail(error)
   const result = (data ?? [])[0] as { content_id: string; content_code: string; created_new: boolean } | undefined
   if (!result) throw new Error('Production Content was not returned')
