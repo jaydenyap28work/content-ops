@@ -193,8 +193,9 @@ export async function loadProductionTeam(workspaceId:string){
   throwIfError(error)
   return(data??[]) as ProductionTeamMemberRecord[]
 }
-export async function createProductionTeamMember(workspaceId:string,name:string,jobTitle:string){
-  const{data,error}=await supabase.rpc('create_team_member',{target_workspace_id:workspaceId,target_name:name,target_job_title:jobTitle})
+export async function createProductionTeamMember(workspaceId:string,name:string,jobTitle:string,email:string){
+  const{data,error}=await supabase.rpc('create_team_member',{target_workspace_id:workspaceId,target_name:name,target_job_title:jobTitle,target_email:email||null})
+  if(error)console.error('[ContentOS] create_team_member RPC failed',error)
   throwIfError(error);return data as string
 }
 export async function updateProductionTeamMember(id:string,name:string,jobTitle:string,active:boolean){

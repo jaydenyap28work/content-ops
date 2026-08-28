@@ -172,7 +172,7 @@ export async function archiveReference(id: string) {
 }
 
 export async function saveIdea(workspaceId: string, values: {
-  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; rawContent?: string; contentFormat?: IdeaContentFormat; originalTopic: string; originalHook: string;
+  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; rawContent?: string; contentFormat?: IdeaContentFormat | ''; originalTopic: string; originalHook: string;
   whyItWorks: string; ourAngle: string; categoryId: string | null; suggestedFormat: string; priority: string;
   ownerUserId: string | null; notes: string; referenceIds: string[]; tags: string[];
   contributors: Array<{ userId: string; roleId: string; notes?: string | null }>
@@ -185,8 +185,9 @@ export async function saveIdea(workspaceId: string, values: {
     target_owner_user_id: values.ownerUserId, target_notes: values.notes, target_reference_ids: values.referenceIds,
     target_tag_names: values.tags, target_contributors: values.contributors,
     target_planned_date: values.plannedDate || null, target_source_platform: values.sourcePlatform,
-    target_raw_content: values.rawContent ?? values.originalTopic, target_content_format: values.contentFormat ?? 'other',
+    target_raw_content: values.rawContent ?? values.originalTopic, target_content_format: values.contentFormat ?? '',
   })
+  if (error) console.error('[ContentOS] save_idea RPC failed', error)
   fail(error); return data as string
 }
 
