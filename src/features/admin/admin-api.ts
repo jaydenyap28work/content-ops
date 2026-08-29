@@ -177,6 +177,45 @@ export async function inviteUser(payload: {
   if (data?.error) throw new Error(data.error as string)
 }
 
+export interface AccessRequestRecord {
+  id: string
+  workspace_id: string
+  auth_user_id: string
+  email: string
+  display_name: string | null
+  avatar_url: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  requested_at: string
+  reviewed_at: string | null
+  assigned_role_id: string | null
+  linked_team_member_id: string | null
+  review_note: string | null
+}
+
+export async function loadAccessRequests(workspaceId: string) {
+  const { data, error } = await supabase.from('access_requests')
+    .select('id,workspace_id,auth_user_id,email,display_name,avatar_url,status,requested_at,reviewed_at,assigned_role_id,linked_team_member_id,review_note')
+    .eq('workspace_id', workspaceId).order('requested_at', { ascending: false })
+  throwIfError(error)
+  return (data ?? []) as AccessRequestRecord[]
+}
+
+export async function reviewAccessRequest(values: { requestId: string; decision: 'approved' | 'rejected'; roleCode?: string; teamMemberId?: string; createTeamMember?: boolean; note?: string }) {
+  const { data, error } = await supabase.rpc('review_access_request', {
+    target_request_id: values.requestId, target_decision: values.decision,
+    target_role_code: values.roleCode ?? null, target_team_member_id: values.teamMemberId ?? null,
+    target_create_team_member: values.createTeamMember ?? false, target_review_note: values.note ?? null,
+  })
+  throwIfError(error)
+  return data
+}
+
+export async function countPendingAccessRequests(workspaceId: string) {
+  const { count, error } = await supabase.from('access_requests').select('id', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId).eq('status', 'pending')
+  throwIfError(error)
+  return count ?? 0
+}
 export interface ProductionTeamMemberRecord {
   id:string
   name:string

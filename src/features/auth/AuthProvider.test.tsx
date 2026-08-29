@@ -7,6 +7,7 @@ import { MemoryRouter, Outlet, Route, Routes, useLocation } from 'react-router-d
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from './AuthProvider'
 import { ProtectedRoute } from './ProtectedRoute'
+import { I18nProvider } from '../i18n/i18n'
 
 type AuthCallback = (
   event: AuthChangeEvent,
@@ -139,7 +140,7 @@ function TestShell() {
 
 function renderProtectedRoute(pathname = '/clients') {
   return render(
-    <AuthProvider>
+    <I18nProvider><AuthProvider>
       <MemoryRouter initialEntries={[pathname]}>
         <Routes>
           <Route path="/login" element={<div>Login page</div>} />
@@ -151,7 +152,7 @@ function renderProtectedRoute(pathname = '/clients') {
           </Route>
         </Routes>
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider></I18nProvider>,
   )
 }
 
@@ -175,7 +176,7 @@ describe('AuthProvider workspace verification lifecycle', () => {
   it('keeps the current form mounted through duplicate auth events, refresh, tab changes, and transient errors', async () => {
     renderProtectedRoute('/clients')
 
-    expect(screen.getByText(/Verifying secure workspace access/i)).toBeTruthy()
+    expect(screen.getByText(/正在验证工作区权限|Verifying secure Workspace access/i)).toBeTruthy()
 
     await emitAuthEvent('INITIAL_SESSION', session)
     const input = await screen.findByLabelText('Pilot title')
@@ -198,7 +199,7 @@ describe('AuthProvider workspace verification lifecycle', () => {
     })
     await waitFor(() => expect(authHarness.profileQueries).toBe(2))
 
-    expect(screen.queryByText(/Verifying secure workspace access/i)).toBeNull()
+    expect(screen.queryByText(/正在验证工作区权限|Verifying secure Workspace access/i)).toBeNull()
     expect(input).toHaveProperty('value', 'LKSoft pilot draft')
     expect(screen.getByLabelText('Current route').textContent).toBe('/clients')
     expect(formMounts).toBe(1)
@@ -230,7 +231,7 @@ describe('AuthProvider workspace verification lifecycle', () => {
     })
     await waitFor(() => expect(authHarness.profileQueries).toBe(3))
 
-    expect(screen.queryByText(/Verifying secure workspace access/i)).toBeNull()
+    expect(screen.queryByText(/正在验证工作区权限|Verifying secure Workspace access/i)).toBeNull()
     expect(input).toHaveProperty('value', 'LKSoft pilot draft')
     expect(formMounts).toBe(1)
     expect(formUnmounts).toBe(0)

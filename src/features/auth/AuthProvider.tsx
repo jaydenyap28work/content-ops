@@ -15,6 +15,10 @@ import type {
   AuthContextValue,
   WorkspaceAccess,
 } from './auth-context'
+import { ensureAccessRequest } from './access-request-api'
+import type { AccessRequestInfo } from './access-request-api'
+
+const CONTENTOS_WORKSPACE_ID = '00000000-0000-4000-8000-000000000001'
 
 interface ProfileRow {
   status: 'active' | 'deactivated'
@@ -50,6 +54,7 @@ interface AuthState {
   workspaceLoading: boolean
   backgroundRefreshing: boolean
   backgroundError: string | null
+  accessRequest: AccessRequestInfo | null
 }
 
 type VerificationMode = 'foreground' | 'background'
@@ -62,6 +67,7 @@ type AccessResult =
         AccessStatus,
         'loading' | 'signed_out' | 'authorized' | 'error'
       >
+      accessRequest?: AccessRequestInfo
     }
   | { kind: 'error'; message: string }
 
@@ -74,8 +80,24 @@ const initialState: AuthState = {
   workspaceLoading: false,
   backgroundRefreshing: false,
   backgroundError: null,
+  accessRequest: null,
 }
 
+async function requestWorkspaceAccess(): Promise<AccessResult> {
+  try {
+    const request = await ensureAccessRequest(CONTENTOS_WORKSPACE_ID)
+    if (request.status === 'authorized') {
+      return { kind: 'error', message: 'Workspace access changed. Please check again.' }
+    }
+    return {
+      kind: 'unauthorized',
+      status: request.status === 'rejected' ? 'access_rejected' : 'access_pending',
+      accessRequest: request,
+    }
+  } catch (error) {
+    return { kind: 'error', message: error instanceof Error ? error.message : 'Access Request failed' }
+  }
+}
 async function queryWorkspaceAccess(activeSession: Session): Promise<AccessResult> {
   const { data: profileData, error: profileError } = await supabase
     .from('user_profiles')
@@ -86,7 +108,7 @@ async function queryWorkspaceAccess(activeSession: Session): Promise<AccessResul
   if (profileError) return { kind: 'error', message: profileError.message }
 
   const profile = profileData as ProfileRow | null
-  if (!profile) return { kind: 'unauthorized', status: 'profile_required' }
+  if (!profile) return requestWorkspaceAccess()
   if (profile.status !== 'active') {
     return { kind: 'unauthorized', status: 'profile_deactivated' }
   }
@@ -106,6 +128,7 @@ async function queryWorkspaceAccess(activeSession: Session): Promise<AccessResul
   )
 
   if (!activeMembership) {
+    if (memberships.length === 0) return requestWorkspaceAccess()
     return {
       kind: 'unauthorized',
       status:
@@ -272,6 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             workspaceLoading: false,
             backgroundRefreshing: false,
             backgroundError: null,
+            accessRequest: null,
           }))
           devAuthLog('workspace_verification_succeeded', {
             source,
@@ -294,6 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             workspaceLoading: false,
             backgroundRefreshing: false,
             backgroundError: null,
+            accessRequest: result.accessRequest ?? null,
           }))
           devAuthLog('workspace_verification_unauthorized', {
             source,
@@ -434,6 +459,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       workspaceLoading: state.workspaceLoading,
       backgroundRefreshing: state.backgroundRefreshing,
       backgroundError: state.backgroundError,
+      accessRequest: state.accessRequest,
       refreshAccess: async () => {
         if (!state.session) {
           applySignedOut('manual_refresh_without_session')

@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import type { AccessRequestInfo } from './access-request-api'
 
 export type AccessStatus =
   | 'loading'
@@ -9,6 +10,8 @@ export type AccessStatus =
   | 'profile_deactivated'
   | 'workspace_required'
   | 'membership_deactivated'
+  | 'access_pending'
+  | 'access_rejected'
   | 'error'
 
 export interface WorkspaceAccess {
@@ -26,6 +29,7 @@ export interface AuthContextValue {
   workspaceLoading: boolean
   backgroundRefreshing: boolean
   backgroundError: string | null
+  accessRequest: AccessRequestInfo | null
   refreshAccess: () => Promise<void>
   signOut: () => Promise<void>
 }
