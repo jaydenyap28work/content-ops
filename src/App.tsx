@@ -5,6 +5,7 @@ import { RouteAccessGuard } from './features/auth/RouteAccessGuard'
 import { AppShell } from './layouts/AppShell'
 import { routeDefinitions } from './lib/navigation'
 import { LoginPage } from './pages/LoginPage'
+import { AdminLoginPage } from './pages/AdminLoginPage'
 import { ClientsPage } from './pages/ClientsPage'
 import { TeamPage } from './pages/TeamPage'
 import { ReferencesPage } from './pages/ReferencesPage'
@@ -32,6 +33,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               {routeDefinitions.map((route) => (

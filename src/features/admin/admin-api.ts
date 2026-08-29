@@ -250,3 +250,5 @@ export async function inviteExistingTeamMember(payload:{teamMemberId:string;emai
   if(error)throw new Error(error.message)
   if(data?.error)throw new Error(data.error as string)
 }
+export async function setTeamMemberAccess(teamMemberId:string,makeActive:boolean){const{error}=await supabase.rpc('set_team_member_access',{target_team_member_id:teamMemberId,make_active:makeActive});throwIfError(error)}
+export async function markAndHardDeleteTestMember(teamMemberId:string,name:string){const marked=await supabase.rpc('mark_test_team_member',{target_team_member_id:teamMemberId,confirmation:name});throwIfError(marked.error);const deleted=await supabase.rpc('hard_delete_test_team_member',{target_team_member_id:teamMemberId,confirmation:'DELETE'});throwIfError(deleted.error)}

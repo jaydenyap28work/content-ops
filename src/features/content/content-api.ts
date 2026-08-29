@@ -4,6 +4,7 @@ import type { ClientRecord } from '../admin/admin-api'
 import { loadContributorOptions, loadIdeas, loadReferences } from '../research/research-api'
 import type { CategoryRecord, ContributorOption, IdeaRecord, ReferenceRecord } from '../research/research-api'
 import { parseSkitContent } from '../pilot/skit-parser'
+import type { ContentType, IdeaContentFormat } from '../research/idea-format'
 
 export type ContentStatus =
   | 'draft'
@@ -20,6 +21,9 @@ export type ContentStatus =
   | 'analytics_tracking'
   | 'completed'
   | 'cancelled'
+  | 'graphic_in_production'
+  | 'graphic_review'
+  | 'published'
 
 export interface CampaignRecord {
   id: string
@@ -39,6 +43,8 @@ export interface ContentRecord {
   workspace_id: string
   client_id: string
   source_idea_id: string | null
+  content_type: ContentType | null
+  content_format: IdeaContentFormat | null
   content_code: string
   title: string
   working_title: string | null
@@ -143,12 +149,13 @@ export async function loadContents(workspaceId: string, contentId?: string) {
   const rows = (result.data ?? []) as Omit<ContentRecord, 'tags' | 'contributors'>[]
   const ids = rows.map((row) => row.id)
   if (ids.length === 0) return []
-  const [tagLinks, contributors, publications] = await Promise.all([
+  const [tagLinks, contributors, publications, taxonomy] = await Promise.all([
     supabase.from('content_tags').select('content_id, tag_id').in('content_id', ids),
     supabase.from('content_contributors').select('content_id, user_profile_id, team_member_id, contribution_role_id, notes').in('content_id', ids).eq('status', 'active'),
     supabase.from('publications').select('content_id, platform_id, is_required, status, scheduled_at, published_at').in('content_id', ids),
+    supabase.from('contents').select('id, content_type, content_format').in('id', ids),
   ])
-  fail(tagLinks.error); fail(contributors.error); fail(publications.error)
+  fail(tagLinks.error); fail(contributors.error); fail(publications.error); fail(taxonomy.error)
   const tagIds = [...new Set((tagLinks.data ?? []).map((row) => row.tag_id as string))]
   const contributorTeamIds = [...new Set((contributors.data ?? []).map((row) => row.team_member_id as string).filter(Boolean))]
   const ownerTeamIds = [...new Set(rows.map((row) => row.owner_team_member_id as string).filter(Boolean))]

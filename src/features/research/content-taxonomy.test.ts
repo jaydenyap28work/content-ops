@@ -1,0 +1,3 @@
+import{describe,expect,it}from'vitest'
+import{contentTypes,graphicFormats,isGraphicFormat,videoFormats}from'./idea-format'
+describe('M26 content taxonomy',()=>{it('separates customer case type from formats',()=>{expect(contentTypes).toContain('customer_case');expect([...videoFormats,...graphicFormats]).not.toContain('customer_case')});it('recognizes graphic formats without changing legacy video formats',()=>{expect(graphicFormats).toEqual(['single_image','carousel','long_form_post','graphic_other']);expect(isGraphicFormat('carousel')).toBe(true);expect(isGraphicFormat('q_and_a')).toBe(false);expect(videoFormats).toContain('product_demo')})})

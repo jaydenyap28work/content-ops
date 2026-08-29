@@ -90,7 +90,7 @@ export interface ProductionTeamMember { id:string; name:string; job_title:string
 export async function loadWorkflowAssignmentCatalog(workspaceId: string, clientId: string) {
   const [people, roles] = await Promise.all([
     supabase.rpc('list_production_team_members', { target_workspace_id: workspaceId, target_client_id: clientId }),
-    supabase.from('contribution_roles').select('id, code, name').eq('workspace_id', workspaceId).eq('is_active', true).in('code',['owner','talent','director','shooter','editor','reviewer','publisher']).order('sort_order'),
+    supabase.from('contribution_roles').select('id, code, name').eq('workspace_id', workspaceId).eq('is_active', true).in('code',['owner','talent','director','shooter','editor','reviewer','publisher','copywriter','designer']).order('sort_order'),
   ])
   fail(people.error); fail(roles.error)
   return { people: (people.data ?? []) as ProductionTeamMember[], roles: (roles.data ?? []) as ContributionRoleRecord[] }
@@ -145,7 +145,7 @@ export async function bulkUpdateProductionItems(contentIds: string[], field: 'ow
   return data as number
 }
 
-export type ProductionRoleCode = 'owner'|'talent'|'director'|'shooter'|'editor'|'reviewer'|'publisher'
+export type ProductionRoleCode = 'owner'|'talent'|'director'|'shooter'|'editor'|'reviewer'|'publisher'|'copywriter'|'designer'
 export async function bulkAssignContentTeamMember(contentIds:string[], teamMemberId:string, roleCode:ProductionRoleCode) {
   const { data, error } = await supabase.rpc('bulk_assign_content_team_member', {
     target_content_ids: contentIds, target_team_member_id: teamMemberId, target_role_code: roleCode,

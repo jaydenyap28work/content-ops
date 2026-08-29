@@ -1,16 +1,10 @@
-export type IdeaContentFormat='q_and_a'|'talking_head'|'skit'|'product_demo'|'podcast'|'voice_over'|'event'
-export const ideaContentFormats:IdeaContentFormat[]=['q_and_a','talking_head','skit','product_demo','podcast','voice_over','event']
-export const ideaFormatLabels:Record<IdeaContentFormat,[string,string]>={
- q_and_a:['Q&A / 访问型','Q&A / Interview'],talking_head:['讲稿型','Talking Head'],skit:['情景短剧','Skit'],
- product_demo:['产品示范','Product Demo'],podcast:['Podcast','Podcast'],voice_over:['旁白','Voice Over'],event:['活动内容','Event'],
-}
-export function inferIdeaFormat(value:string|null|undefined):IdeaContentFormat{
- const normalized=(value??'').toLowerCase()
- if(/skit|短剧|情景/u.test(normalized))return'skit'
- if(/talking|讲稿|独白/u.test(normalized))return'talking_head'
- if(/product|demo|产品/u.test(normalized))return'product_demo'
- if(/podcast/u.test(normalized))return'podcast'
- if(/voice|旁白/u.test(normalized))return'voice_over'
- if(/event|活动/u.test(normalized))return'event'
- return'q_and_a'
-}
+export type ContentType='owner_ip'|'product_education'|'customer_case'|'industry_knowledge'|'company_culture'|'event'|'conversion'|'other'
+export type IdeaContentFormat='q_and_a'|'talking_head'|'skit'|'onsite_video'|'product_demo'|'podcast'|'voice_over'|'event'|'single_image'|'carousel'|'long_form_post'|'graphic_other'
+export const contentTypes:ContentType[]=['owner_ip','product_education','customer_case','industry_knowledge','company_culture','event','conversion','other']
+export const contentTypeLabels:Record<ContentType,[string,string]>={owner_ip:['老板 IP','Owner IP'],product_education:['产品教育','Product Education'],customer_case:['客户案例','Customer Case'],industry_knowledge:['行业知识','Industry Knowledge'],company_culture:['公司文化','Company Culture'],event:['活动','Event'],conversion:['转化内容','Conversion'],other:['其他','Other']}
+export const videoFormats:IdeaContentFormat[]=['q_and_a','talking_head','skit','onsite_video','product_demo','podcast','voice_over','event']
+export const graphicFormats:IdeaContentFormat[]=['single_image','carousel','long_form_post','graphic_other']
+export const ideaContentFormats=[...videoFormats,...graphicFormats]
+export const ideaFormatLabels:Record<IdeaContentFormat,[string,string]>={q_and_a:['Q&A 访问','Q&A Interview'],talking_head:['Talking Head 讲稿','Talking Head'],skit:['情景短剧','Skit'],onsite_video:['门店 / 现场实拍','On-site Video'],product_demo:['产品示范','Product Demo'],podcast:['Podcast','Podcast'],voice_over:['旁白','Voice Over'],event:['活动视频','Event Video'],single_image:['单图资讯','Single Image'],carousel:['图文轮播','Carousel'],long_form_post:['长文贴文','Long-form Post'],graphic_other:['其他图文','Other Graphic']}
+export const isGraphicFormat=(value:string|null|undefined)=>graphicFormats.includes(value as IdeaContentFormat)
+export function inferIdeaFormat(value:string|null|undefined):IdeaContentFormat{const n=(value??'').toLowerCase();if(/carousel|轮播/u.test(n))return'carousel';if(/single|单图/u.test(n))return'single_image';if(/long.form|长文/u.test(n))return'long_form_post';if(/onsite|门店|现场/u.test(n))return'onsite_video';if(/skit|短剧|情景/u.test(n))return'skit';if(/talking|讲稿|独白/u.test(n))return'talking_head';if(/product|demo|产品/u.test(n))return'product_demo';if(/podcast/u.test(n))return'podcast';if(/voice|旁白/u.test(n))return'voice_over';if(/event|活动/u.test(n))return'event';return'q_and_a'}

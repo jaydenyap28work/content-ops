@@ -1,5 +1,6 @@
 import type { ContentRecord, ContentStatus } from './content-api'
 import type { WorkflowAction } from './workflow-api'
+import { isGraphicFormat } from '../research/idea-format'
 
 export function productionBoardStage(content: Pick<ContentRecord, 'current_status' | 'publication_state' | 'shoot_scheduled_at' | 'planned_shoot_date'>) {
   if (content.publication_state === 'fully_published' && content.current_status === 'ready_for_publishing') return 'published'
@@ -48,7 +49,10 @@ export function legalWorkflowAction(content: ContentRecord): { action: WorkflowA
 
 export function productionTracker(content: ContentRecord, language: 'zh-CN' | 'en') {
   const zh = language === 'zh-CN'
-  const status = content.current_status
+  if (isGraphicFormat(content.content_format)) {
+    const actions: Record<string, [string, string]> = { draft:['开始制作','Start production'], graphic_in_production:['提交审核','Submit review'], graphic_review:['审核图文','Review Graphic Content'], revision_required:['提交修改版','Submit revision'], ready_for_publishing:['安排发布','Schedule publishing'], published:['标记完成','Complete'], completed:['查看详情','View details'] }
+    return { shooting:'—', editing:zh?'图文制作':'Graphic production', review:content.current_status==='graphic_review'?(zh?'待审核':'In review'):content.current_status==='revision_required'?(zh?'需要修改':'Revision required'):'—', publishing:content.current_status==='ready_for_publishing'?(zh?'待发布':'Ready to publish'):['published','completed'].includes(content.current_status)?(zh?'已发布':'Published'):(zh?'未安排':'Not scheduled'), nextAction:(actions[content.current_status]??['查看详情','View details'])[zh?0:1] }
+  }  const status = content.current_status
   const editor = person(content, 'editor')
   const reviewer = person(content, 'reviewer')
   const publications = content.publications ?? []

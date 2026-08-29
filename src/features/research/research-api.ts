@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { ClientRecord } from '../admin/admin-api'
-import type { IdeaContentFormat } from './idea-format'
+import type { ContentType, IdeaContentFormat } from './idea-format'
 
 export interface PlatformRecord { id: string; code: string; name: string }
 export interface CategoryRecord { id: string; client_id: string | null; name: string }
@@ -46,6 +46,7 @@ export interface IdeaRecord {
   source_url: string | null
   source_platform?: string | null
   raw_content?: string | null
+  content_type?: ContentType | null
   content_format?: IdeaContentFormat | null
   original_topic: string | null
   original_hook: string | null
@@ -125,7 +126,7 @@ export async function loadReferences(workspaceId: string) {
 
 export async function loadIdeas(workspaceId: string) {
   const [ideas, plannerContext] = await Promise.all([
-    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, source_platform, raw_content, content_format, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, idea_provider_team_member_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }),
+    supabase.from('ideas').select('id, workspace_id, client_id, title, planned_date, shoot_planned_at, planned_shoot_date, source_url, source_platform, raw_content, content_type, content_format, original_topic, original_hook, why_it_works, our_angle, category_id, suggested_format, priority, status, planning_status, owner_user_id, idea_provider_team_member_id, created_by, notes, status_reason, created_at, updated_at').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }),
     supabase.rpc('list_idea_planner_context', { target_workspace_id: workspaceId }),
   ])
   fail(ideas.error); fail(plannerContext.error)
@@ -170,12 +171,12 @@ export async function archiveReference(id: string) {
 }
 
 export async function saveIdea(workspaceId: string, values: {
-  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; rawContent?: string; contentFormat?: IdeaContentFormat | ''; originalTopic: string; originalHook: string;
+  id?: string; clientId: string; title: string; plannedDate: string; sourceUrl: string; sourcePlatform: string | null; rawContent?: string; contentType?: ContentType | ''; contentFormat?: IdeaContentFormat | ''; originalTopic: string; originalHook: string;
   whyItWorks: string; ourAngle: string; categoryId: string | null; suggestedFormat: string; priority: string;
   providerTeamMemberId: string | null; notes: string; referenceIds: string[]; tags: string[];
   contributors: Array<{ userId: string; roleId: string; notes?: string | null }>
 }) {
-  const { data, error } = await supabase.rpc('save_idea_submission', {
+  const { data, error } = await supabase.rpc('save_idea_submission_v2', {
     target_idea_id: values.id ?? null, target_workspace_id: workspaceId, target_client_id: values.clientId,
     target_title: values.title, target_source_url: values.sourceUrl, target_original_topic: values.originalTopic,
     target_original_hook: values.originalHook, target_why_it_works: values.whyItWorks, target_our_angle: values.ourAngle,
@@ -183,7 +184,7 @@ export async function saveIdea(workspaceId: string, values: {
     target_provider_team_member_id: values.providerTeamMemberId, target_notes: values.notes, target_reference_ids: values.referenceIds,
     target_tag_names: values.tags, target_contributors: values.contributors,
     target_planned_date: values.plannedDate || null, target_source_platform: values.sourcePlatform,
-    target_raw_content: values.rawContent ?? values.originalTopic, target_content_format: values.contentFormat ?? '',
+    target_raw_content: values.rawContent ?? values.originalTopic, target_content_format: values.contentFormat ?? '', target_content_type: values.contentType ?? '',
   })
   if (error) console.error('[ContentOS] save_idea_submission RPC failed', error)
   fail(error); return data as string

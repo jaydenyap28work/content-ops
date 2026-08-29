@@ -4,7 +4,7 @@ const zh: Record<string, string> = {
   new: '新选题', evaluating: '评估中', approved: '已确认', converted: '已转制作', rejected: '已搁置', archived: '已归档',
   draft: '草稿', ready_to_shoot: '待拍摄', shooting: '拍摄中', shot_awaiting_edit: '已拍摄 / 待剪辑', editing: '剪辑中',
   first_cut_submitted: '初剪已提交', internal_review: '审核中', revision_required: '需要修改', client_review: '客户审核',
-  ready_for_publishing: '待发布', analytics_tracking: '数据追踪中', completed: '已完成', cancelled: '已取消',
+  ready_for_publishing: '待发布', graphic_in_production: '撰稿 / 设计中', graphic_review: '待审核', published: '已发布', analytics_tracking: '数据追踪中', completed: '已完成', cancelled: '已取消',
   not_published: '未发布', partially_published: '部分已发布', fully_published: '已发布', needs_attention: '需要处理',
   low: '低', normal: '普通', high: '高', urgent: '紧急',
   PLAN: '计划', SHOOT: '🎥 拍摄', REVIEW: '审核', PUBLISH: '发布',

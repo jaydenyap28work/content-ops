@@ -1,0 +1,11 @@
+import{supabase}from'../../lib/supabase'
+import type{ContentStatus}from'./content-api'
+export interface GraphicPage{title:string;body:string;visual_note:string;asset_note:string}
+export interface GraphicPack{id:string;content_id:string;headline:string|null;cover_copy:string|null;cta:string|null;caption:string|null;hashtags:string[];design_notes:string|null;reference_links:string[];asset_notes:string|null;platforms:string[];review_status:string;single_image_core_info:string|null;single_image_supporting_info:string|null;single_image_visual_note:string|null;pages:GraphicPage[]}
+export interface CustomerCaseProfile{id:string;content_id:string;case_client_id:string|null;industry:string|null;location:string|null;product_solution:string|null;client_highlights:string|null;lksoft_solution:string|null;cta:string|null;needs_client_approval:boolean;client_approval_status:string|null}
+const fail=(e:{message:string}|null)=>{if(e)throw new Error(e.message)}
+export async function loadGraphicData(contentId:string){const[p,c]=await Promise.all([supabase.from('graphic_content_packs').select('*').eq('content_id',contentId).maybeSingle(),supabase.from('customer_case_profiles').select('*').eq('content_id',contentId).maybeSingle()]);fail(p.error);fail(c.error);return{pack:p.data as GraphicPack|null,customerCase:c.data as CustomerCaseProfile|null}}
+export async function saveGraphicPack(contentId:string,payload:Omit<GraphicPack,'id'|'content_id'>){const{error}=await supabase.rpc('save_graphic_content_pack',{target_content_id:contentId,target_payload:payload});fail(error)}
+export async function saveCustomerCase(contentId:string,payload:Omit<CustomerCaseProfile,'id'|'content_id'>){const{error}=await supabase.rpc('save_customer_case_profile',{target_content_id:contentId,target_payload:payload});fail(error)}
+export async function performGraphicAction(contentId:string,action:string,expected:ContentStatus,note=''){const{error}=await supabase.rpc('perform_graphic_workflow_action',{target_content_id:contentId,target_action:action,expected_from_state:expected,target_note:note});fail(error)}
+export async function setIdeaProvider(contentId:string,teamMemberId:string|null){const{error}=await supabase.rpc('set_content_idea_provider',{target_content_id:contentId,target_team_member_id:teamMemberId});fail(error)}
