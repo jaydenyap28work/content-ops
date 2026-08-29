@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../features/auth/auth-context', () => {
-  const value = { workspace: { id: 'workspace-1', roles: ['Super Admin'] } }
+  const value = { workspace: { id: 'workspace-1', roles: ['Super Admin'] }, session: { user: { id: 'admin-1' } } }
   return { useAuth: () => value }
 })
 
@@ -24,6 +24,9 @@ vi.mock('../features/admin/admin-api', () => ({
   loadRoles: vi.fn(async () => []),
   loadClients: vi.fn(async () => []),
   updateProductionTeamMember: vi.fn(),
+  setProductionTeamMemberActive: vi.fn(),
+  setTeamMemberAccess: vi.fn(),
+  markAndHardDeleteTestMember: vi.fn(),
   prepareTeamMemberInvite: vi.fn(),
   inviteExistingTeamMember: vi.fn(),
 }))

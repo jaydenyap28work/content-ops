@@ -1,6 +1,8 @@
 import { supabase } from '../../lib/supabase'
 import type { ContentStatus } from './content-api'
 import type { ContributionRoleRecord } from '../research/research-api'
+import { loadActiveTeamMembers } from '../admin/active-team-members'
+import type { ActiveTeamMemberOption } from '../admin/active-team-members'
 
 export type WorkflowAction =
   | 'mark_ready_to_shoot'
@@ -86,14 +88,14 @@ export async function loadWorkflowBundle(contentId: string): Promise<WorkflowBun
   }
 }
 
-export interface ProductionTeamMember { id:string; name:string; job_title:string|null; email:string|null; auth_user_id:string|null; login_status:'not_enabled'|'invited'|'enabled'; status:'active'|'inactive' }
+export type ProductionTeamMember = ActiveTeamMemberOption
 export async function loadWorkflowAssignmentCatalog(workspaceId: string, clientId: string) {
   const [people, roles] = await Promise.all([
-    supabase.rpc('list_production_team_members', { target_workspace_id: workspaceId, target_client_id: clientId }),
+    loadActiveTeamMembers(workspaceId, clientId),
     supabase.from('contribution_roles').select('id, code, name').eq('workspace_id', workspaceId).eq('is_active', true).in('code',['owner','talent','director','shooter','editor','reviewer','publisher','copywriter','designer']).order('sort_order'),
   ])
-  fail(people.error); fail(roles.error)
-  return { people: (people.data ?? []) as ProductionTeamMember[], roles: (roles.data ?? []) as ContributionRoleRecord[] }
+  fail(roles.error)
+  return { people, roles: (roles.data ?? []) as ContributionRoleRecord[] }
 }
 
 export async function performWorkflowAction(

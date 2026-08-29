@@ -40,7 +40,7 @@ export function PublishingWorkspace({content,bundle,contributors,currentUserId,w
   </div>
 }
 
-function PublicationCard({publication,account,platform,snapshots,canExecute,canAddAnalytics,busy,run}:{publication:PublicationRecord;account?:{account_name:string;account_handle:string};platform?:{name:string};snapshots:AnalyticsSnapshotRecord[];canExecute:boolean;canAddAnalytics:boolean;busy:string|null;run:(key:string,action:()=>Promise<unknown>)=>Promise<void>}){
+function PublicationCard({publication,account,platform,snapshots,canExecute,canAddAnalytics,busy,run}:{publication:PublicationRecord;account?:{account_name:string;account_handle:string|null};platform?:{name:string};snapshots:AnalyticsSnapshotRecord[];canExecute:boolean;canAddAnalytics:boolean;busy:string|null;run:(key:string,action:()=>Promise<unknown>)=>Promise<void>}){
   const {language}=useI18n();const zh=language==='zh-CN'
   const[schedule,setSchedule]=useState(localNow());const[publishedAt,setPublishedAt]=useState(localNow());const[url,setUrl]=useState(publication.post_url??'');const[note,setNote]=useState('');const[failure,setFailure]=useState('')
   const[type,setType]=useState<SnapshotType>('24h');const[capturedAt,setCapturedAt]=useState(localNow());const[metrics,setMetrics]=useState<MetricInput>(emptyMetrics);const[snapshotNote,setSnapshotNote]=useState('')

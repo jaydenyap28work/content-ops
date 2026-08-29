@@ -222,7 +222,7 @@ export interface ProductionTeamMemberRecord {
   job_title:string|null
   email:string|null
   auth_user_id:string|null
-  login_status:'not_enabled'|'invited'|'enabled'
+  login_status:'not_enabled'|'invited'|'enabled'|'disabled'
   status:'active'|'inactive'
   created_at:string
   updated_at:string
@@ -237,8 +237,8 @@ export async function createProductionTeamMember(workspaceId:string,name:string,
   if(error)console.error('[ContentOS] create_team_member RPC failed',error)
   throwIfError(error);return data as string
 }
-export async function updateProductionTeamMember(id:string,name:string,jobTitle:string,active:boolean){
-  const{error}=await supabase.rpc('update_team_member',{target_team_member_id:id,target_name:name,target_job_title:jobTitle,target_active:active})
+export async function updateProductionTeamMember(id:string,name:string,jobTitle:string){
+  const{error}=await supabase.rpc('update_team_member',{target_team_member_id:id,target_name:name,target_job_title:jobTitle,target_active:true})
   throwIfError(error)
 }
 export async function prepareTeamMemberInvite(id:string,email:string){
@@ -251,4 +251,5 @@ export async function inviteExistingTeamMember(payload:{teamMemberId:string;emai
   if(data?.error)throw new Error(data.error as string)
 }
 export async function setTeamMemberAccess(teamMemberId:string,makeActive:boolean){const{error}=await supabase.rpc('set_team_member_access',{target_team_member_id:teamMemberId,make_active:makeActive});throwIfError(error)}
+export async function setProductionTeamMemberActive(teamMemberId:string,makeActive:boolean){const{error}=await supabase.rpc('set_team_member_active',{target_team_member_id:teamMemberId,make_active:makeActive});throwIfError(error)}
 export async function markAndHardDeleteTestMember(teamMemberId:string,name:string){const marked=await supabase.rpc('mark_test_team_member',{target_team_member_id:teamMemberId,confirmation:name});throwIfError(marked.error);const deleted=await supabase.rpc('hard_delete_test_team_member',{target_team_member_id:teamMemberId,confirmation:'DELETE'});throwIfError(deleted.error)}

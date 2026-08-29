@@ -14,7 +14,7 @@ export async function loadBrandBundle(workspaceId:string):Promise<BrandBundle>{
   const brand=brandResult.data as ClientRecord|null
   if(!brand)return{brand:null,platforms:[],accounts:[],assets:[],scenes:[]}
   const[platforms,accounts,assets,scenes]=await Promise.all([
-    supabase.from('platforms').select('id,code,name').in('code',['facebook','instagram','youtube','tiktok','xhs','threads','lemon8']).eq('is_active',true).order('sort_order'),
+    supabase.from('platforms').select('id,code,name').in('code',['facebook','instagram','youtube','tiktok','douyin','xhs','threads','lemon8']).eq('is_active',true).order('sort_order'),
     supabase.from('social_accounts').select('id,client_id,platform_id,account_name,account_handle,external_url,is_active,followers,followers_updated_at,followers_data_source,note,updated_at').eq('client_id',brand.id).order('account_name'),
     supabase.from('brand_assets').select('id,workspace_id,client_id,name,category,description,location,tags,is_recommended,usage_notes,status,created_at,updated_at').eq('client_id',brand.id).order('is_recommended',{ascending:false}).order('updated_at',{ascending:false}),
     supabase.from('shoot_scenes').select('id,workspace_id,client_id,name,photo_urls,location,suitable_for,recommended_camera_positions,composition_notes,lighting_notes,audio_notes,background_notes,shooting_sop,is_recommended,status,created_at,updated_at').eq('client_id',brand.id).order('is_recommended',{ascending:false}).order('name'),
