@@ -3,6 +3,7 @@ import { useCurrentRoute } from '../hooks/useCurrentRoute'
 import { StatusBadge } from '../components/ui'
 import { useAuth } from '../features/auth/auth-context'
 import { LanguageSwitch, routeTranslationKeys, useI18n } from '../features/i18n/i18n'
+import { NotificationBell } from '../features/notifications/NotificationBell'
 
 interface TopBarProps {
   onOpenNavigation: () => void
@@ -32,6 +33,7 @@ export function TopBar({ onOpenNavigation }: TopBarProps) {
         </div>
 
         <LanguageSwitch compact />
+        <NotificationBell />
         <div className="hidden min-w-0 items-center gap-3 sm:flex">
           <div className="min-w-0 text-right">
             <p className="max-w-56 truncate text-xs font-bold text-ink">{session?.user.email}</p>

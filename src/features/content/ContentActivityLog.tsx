@@ -1,0 +1,14 @@
+import { ExternalLink, History } from 'lucide-react'
+import { Card, StatusBadge } from '../../components/ui'
+import type { ReviewBundle } from './review-api'
+import type { WorkflowBundle } from './workflow-api'
+import { useI18n } from '../i18n/i18n'
+
+const zhAction:Record<string,string>={marked_ready_to_shoot:'确认待拍摄',shoot_started:'开始拍摄',shoot_completed:'完成拍摄',editing_started:'开始剪辑',first_cut_submitted:'提交初剪',review_started:'开始审核',revision_requested:'要求修改',revision_started:'开始修改',revision_submitted:'提交修改版',approval_recorded:'通过审核',final_approved:'最终通过',publication_scheduled:'安排发布',publication_published:'标记已发布',contributor_assigned:'分配制作成员',contributor_removed:'移除制作成员',idea_provider_changed:'更改选题提供者'}
+const enAction=(value:string)=>value.split('_').map(v=>v[0]?.toUpperCase()+v.slice(1)).join(' ')
+export function ContentActivityLog({workflow,review}:{workflow:WorkflowBundle;review:ReviewBundle}){
+ const{language}=useI18n();const zh=language==='zh-CN'
+ const rows=[...workflow.events.map(item=>({...item,source:'workflow' as const,note:item.notes})),...workflow.activity.map(item=>({...item,source:'activity' as const,note:null,event_type:item.action,from_state:'',to_state:'',notes:null}))].sort((a,b)=>new Date(b.occurred_at).getTime()-new Date(a.occurred_at).getTime())
+ function mediaFor(event:{event_type:string;occurred_at:string}){if(!['first_cut_submitted','revision_submitted','final_media_submitted'].includes(event.event_type))return null;return [...review.media].sort((a,b)=>Math.abs(new Date(a.submitted_at).getTime()-new Date(event.occurred_at).getTime())-Math.abs(new Date(b.submitted_at).getTime()-new Date(event.occurred_at).getTime()))[0]??null}
+ return <Card><div className="flex items-center justify-between"><div className="flex items-center gap-2"><History className="size-5 text-coral"/><h3 className="text-lg font-bold">{zh?'操作记录':'Activity Log'}</h3></div><StatusBadge tone="info">{zh?'不可修改':'Immutable'}</StatusBadge></div>{rows.length?<ol className="mt-5 divide-y divide-line">{rows.map(item=>{const media=mediaFor(item);return <li key={`${item.source}-${item.id}`} className="grid gap-2 py-4 sm:grid-cols-[9rem_minmax(0,1fr)_auto]"><time className="text-xs text-ink-muted">{new Date(item.occurred_at).toLocaleString(zh?'zh-CN':'en-MY')}</time><div><p className="font-bold">{zh?(zhAction[item.event_type]??enAction(item.event_type)):enAction(item.event_type)}{media?` · V${media.version_number}`:''}</p><p className="mt-1 text-xs text-ink-muted">{item.actor_name}</p>{item.note?<p className="mt-2 text-sm">{item.note}</p>:null}</div>{media?.external_url?<a href={media.external_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-bold text-blue">{zh?'打开版本':'Open version'}<ExternalLink className="size-3.5"/></a>:null}</li>})}</ol>:<p className="mt-5 text-sm text-ink-muted">{zh?'暂无操作记录':'No activity yet'}</p>}</Card>
+}
